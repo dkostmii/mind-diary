@@ -1,0 +1,10 @@
+{
+  "name": "Mind Diary",
+  "short_name": "Mind Diary",
+  "description": "A journaling app for self-reflection and emotional self-exploration",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fafaf9",
+  "theme_color": "#4f46e5",
+  "icons": []
+}
