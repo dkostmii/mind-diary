@@ -2,9 +2,6 @@ export default {
   app: 'Mind Diary',
   onboarding: {
     namePrompt: 'What is your name?',
-    reminderTitle: 'Daily reminder',
-    reminderEnable: 'Enable',
-    reminderSkip: 'Skip',
     welcome: 'Welcome, {name}!',
   },
   journal: {
@@ -22,7 +19,7 @@ export default {
     originalDate: 'You wrote on {date}',
   },
   history: {
-    title: 'History',
+    title: 'Recall',
     filterAll: 'All',
     filterUnreflected: 'Unreflected',
     filterReflected: 'Reflected',
@@ -40,16 +37,17 @@ export default {
     title: 'Settings',
     nameLabel: 'Name',
     languageLabel: 'Language',
-    reminderLabel: 'Reminder',
-    reminderTimeLabel: 'Reminder time',
-    permissionGranted: 'Allowed',
-    permissionDenied: 'Blocked',
-    permissionUnsupported: 'Not supported',
     export: 'Export',
     import: 'Import',
     exportCount: '{count} entries',
     importSuccess: 'Imported {count} entries',
     importError: 'Failed to import file',
+  },
+  nav: {
+    journal: 'Journal',
+    reflect: 'Reflect',
+    history: 'Recall',
+    settings: 'Settings',
   },
   common: {
     save: 'Save',

@@ -1,26 +1,28 @@
 import { HashRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { LanguageProvider } from '../i18n';
+import { LanguageProvider, useTranslation } from '../i18n';
 import useUserStore from '../store/useUserStore';
 import useMessageStore from '../store/useMessageStore';
 import routes from './routes';
 
 function NavBar() {
   const location = useLocation();
+  const { t } = useTranslation();
   if (location.pathname === '/onboarding') return null;
 
   const links = [
-    { to: '/', label: '📝', name: 'Journal' },
-    { to: '/reflect', label: '💭', name: 'Reflect' },
-    { to: '/history', label: '📖', name: 'History' },
-    { to: '/settings', label: '⚙️', name: 'Settings' },
+    { to: '/', label: '📝', nameKey: 'nav.journal' },
+    { to: '/reflect', label: '💭', nameKey: 'nav.reflect' },
+    { to: '/history', label: '📖', nameKey: 'nav.history' },
+    { to: '/settings', label: '⚙️', nameKey: 'nav.settings' },
   ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-stone-800 border-t border-stone-200 dark:border-stone-700 z-50">
       <div className="max-w-md mx-auto flex justify-around py-2">
-        {links.map(({ to, label, name }) => {
+        {links.map(({ to, label, nameKey }) => {
           const active = location.pathname === to;
+          const name = t(nameKey);
           return (
             <Link
               key={to}

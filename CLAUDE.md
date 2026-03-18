@@ -40,9 +40,8 @@ src/
 │   ├── summary/
 │   │   └── WeeklySummary.jsx # Stats: entries, streak, reflections, ratio
 │   └── shared/
-│       ├── ReminderModal.jsx # First-launch + settings reminder modal
 │       ├── LanguageSelector.jsx # uk/en toggle
-│       └── OnboardingFlow.jsx   # Language → name → reminder → journal
+│       └── OnboardingFlow.jsx   # Language → name → journal
 ├── i18n/
 │   ├── uk.js                # Ukrainian translations (primary)
 │   ├── en.js                # English translations
@@ -54,14 +53,12 @@ src/
 │   ├── Journal.jsx          # Main screen — message feed + compose
 │   ├── Reflect.jsx          # Reflection screen — past message + reply compose
 │   ├── History.jsx          # Browse all messages with filters
-│   ├── Settings.jsx         # Name, language, reminder, export
+│   ├── Settings.jsx         # Name, language, export
 │   └── Onboarding.jsx       # First-launch flow
 ├── utils/
 │   ├── storage.js           # IndexedDB wrapper (idb)
 │   ├── exportData.js        # JSON/CSV export
-│   ├── notifications.js     # Service worker registration + reminder scheduling
 │   └── streak.js            # Streak and weekly stats calculations
-├── service-worker.js        # SW for notifications + offline PWA cache
 └── index.jsx                # Entry point
 ```
 
@@ -91,8 +88,6 @@ src/
   onboardingComplete: true,
   createdAt: 1710600000000,
   preferences: {
-    reminderEnabled: true,           // Whether daily reminder is active
-    reminderTime: '21:00',           // Default evening reminder
     weekStartDay: 'monday'           // 'monday' | 'sunday'
   }
 }
@@ -148,12 +143,12 @@ const { t } = useTranslation();
 
 Each translation file (`uk.js`, `en.js`) exports a flat-nested object with these top-level keys:
 - `app` — app name
-- `onboarding` — first-launch strings (namePrompt, reminderTitle, reminderEnable, reminderSkip, welcome)
+- `onboarding` — first-launch strings (namePrompt, welcome)
 - `journal` — main screen (placeholder, send, emptyState, today, yesterday)
 - `reflect` — reflection screen (title, prompt, placeholder, emptyState, originalDate)
 - `history` — history screen (title, filterAll, filterUnreflected, filterReflected, reflectionLabel)
 - `summary` — weekly summary (title, entriesThisWeek, streak, days, totalReflections, reflectionRatio)
-- `settings` — settings screen (all labels, export buttons, permission status)
+- `settings` — settings screen (all labels, export buttons)
 - `common` — shared (save, cancel, skip, done, back)
 
 **All user-facing text must use the `t()` function. No hardcoded strings in components.**
@@ -163,13 +158,12 @@ Each translation file (`uk.js`, `en.js`) exports a flat-nested object with these
 Sequential, not a conversation. No bot messages, no scripted replies.
 
 ```
-LANGUAGE_SELECT → NAME_INPUT → REMINDER_MODAL → JOURNAL
+LANGUAGE_SELECT → NAME_INPUT → JOURNAL
 ```
 
 1. **Language selector**: Two buttons — "Українська" / "English". Stores `user.language`.
 2. **Name input**: Single text field with label `t('onboarding.namePrompt')`. Stores `user.name`.
-3. **Reminder modal**: Asks if user wants daily reminders. Time picker (default 21:00). Two actions: enable (triggers Notification.requestPermission()) or skip. Dismissible.
-4. **Done**: Sets `user.onboardingComplete = true`, navigates to Journal.
+3. **Done**: Sets `user.onboardingComplete = true`, navigates to Journal.
 
 ## Journal screen (Home)
 
@@ -202,8 +196,7 @@ Surfaces old messages and lets the user reply to their past self.
 ```js
 function getNextReflectionEntry(messages) {
   return messages
-    .filter(m => m.reflection === null)        // Not yet reflected
-    .filter(m => daysSince(m.date) >= 3)       // At least 3 days old
+    .filter(m => !m.reflection)                // Not yet reflected
     .sort((a, b) => a.createdAt - b.createdAt) // Oldest first
     [0];                                        // Take first match
 }
@@ -218,7 +211,7 @@ function getNextReflectionEntry(messages) {
 
 ### Rules
 - One reflection per message (no chains in MVP)
-- Minimum 3-day gap before a message becomes eligible for reflection
+- No minimum gap — users can reflect on any message immediately
 - Oldest unreflected message surfaces first
 - Empty state: `t('reflect.emptyState')`
 
@@ -256,52 +249,6 @@ function computeWeeklySummary(messages) {
   };
 }
 ```
-
-## Push notifications / reminders
-
-Local-only. No server, no third-party push service.
-
-### Implementation
-
-```js
-// utils/notifications.js
-
-export async function requestPermission() {
-  if (!('Notification' in window)) return 'unsupported';
-  if (Notification.permission === 'granted') return 'granted';
-  return await Notification.requestPermission();
-}
-
-export function scheduleReminder(timeStr) {
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.ready.then(registration => {
-      registration.active.postMessage({
-        type: 'SCHEDULE_REMINDER',
-        time: timeStr
-      });
-    });
-  }
-}
-```
-
-### Service worker strategy
-
-1. Registered at app boot
-2. Every 60s: compare current `HH:MM` against stored `reminderTime`
-3. If match and `lastReminderDate !== today`: fire notification
-4. `lastReminderDate` stored in IndexedDB to prevent duplicates
-5. Notification content: rotate through Ukrainian messages (e.g., "Привіт, {name}! Час записати думки ✨")
-6. Click handler opens app to Journal screen
-7. Also provides PWA offline cache
-
-### Reminder modal (first launch)
-
-Shown after name input during onboarding:
-- Title: `t('onboarding.reminderTitle')`
-- Time picker (default 21:00)
-- Two buttons: `t('onboarding.reminderEnable')` / `t('onboarding.reminderSkip')`
-- "Enable" triggers `Notification.requestPermission()`, stores preferences
-- "Skip" dismisses, user can enable later in Settings
 
 ## Data export
 
@@ -345,12 +292,11 @@ function downloadFile(content, filename, mimeType) {
 
 - **Name**: editable text field
 - **Language**: uk/en toggle (applying immediately)
-- **Reminder**: toggle on/off + time picker. Shows permission status (Allowed / Blocked / Not supported)
 - **Export**: `t('settings.exportJSON')` and `t('settings.exportCSV')` buttons with message count
 
 ## Key implementation rules
 
-1. **Zero network calls.** No analytics, no telemetry, no API calls. Everything is localStorage + IndexedDB. The only exception is the service worker for local push notifications — it never contacts any server.
+1. **Zero network calls.** No analytics, no telemetry, no API calls. Everything is localStorage + IndexedDB.
 2. **No bot, no scripted messages, no AI.** The app never generates text. All text on screen is either user-written or a static UI string from the translation file.
 3. **Multiple messages per day.** This is a message feed, not a one-entry-per-day journal. Messages are timestamped to the minute.
 4. **Ukrainian-first.** All default text is Ukrainian. Every user-facing string uses `t()` from the i18n system. No hardcoded strings in components.
@@ -364,19 +310,18 @@ function downloadFile(content, filename, mimeType) {
 ## MVP scope boundaries
 
 ### In scope
-- Onboarding (language → name → reminder modal)
+- Onboarding (language → name)
 - Journal feed (write messages, multiple per day, messaging-style UI)
-- Reflection (reply to past self, oldest unreflected surfaced first, 3-day minimum gap)
+- Reflection (reply to past self, oldest unreflected surfaced first, no minimum gap)
 - History (browse all messages, filter by reflected/unreflected, tap to reflect)
 - Weekly summary (entries count, streak, reflections count, reflection ratio)
-- Push notifications / reminders (local-only, service worker, configurable time)
 - Data export (JSON and CSV, in-browser download)
-- Settings (name, language, reminder, export)
+- Settings (name, language, export)
 - Ukrainian language (primary) + English (secondary)
 - Dark mode
-- PWA manifest + service worker for offline
 
 ### Out of scope (post-MVP)
+- Push notifications / reminders (requires server-side push infrastructure)
 - Custom themes / colors (premium)
 - Photo attachments (premium)
 - Reflection chains (multiple replies to one message)
