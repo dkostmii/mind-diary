@@ -7,6 +7,15 @@ export function calcStreak(messages) {
   let streak = 0;
   let day = new Date();
 
+  // If no entries today, allow streak to continue from yesterday
+  // (streak only breaks after a full day with no entries)
+  if (!datesWithEntries.has(format(day, 'yyyy-MM-dd'))) {
+    day = subDays(day, 1);
+    if (!datesWithEntries.has(format(day, 'yyyy-MM-dd'))) {
+      return 0;
+    }
+  }
+
   while (datesWithEntries.has(format(day, 'yyyy-MM-dd'))) {
     streak++;
     day = subDays(day, 1);

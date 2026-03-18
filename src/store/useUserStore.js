@@ -9,8 +9,6 @@ const useUserStore = create(
       onboardingComplete: false,
       createdAt: null,
       preferences: {
-        reminderEnabled: false,
-        reminderTime: '21:00',
         weekStartDay: 'monday',
       },
 

@@ -1,13 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from '../../i18n';
 import LanguageSelector from './LanguageSelector';
-import ReminderModal from './ReminderModal';
 import useUserStore from '../../store/useUserStore';
 
 const STEPS = {
   LANGUAGE: 0,
   NAME: 1,
-  REMINDER: 2,
 };
 
 export default function OnboardingFlow({ onComplete }) {
@@ -17,7 +15,6 @@ export default function OnboardingFlow({ onComplete }) {
   const language = useUserStore((s) => s.language);
   const setLanguage = useUserStore((s) => s.setLanguage);
   const setUserName = useUserStore((s) => s.setName);
-  const updatePreferences = useUserStore((s) => s.updatePreferences);
   const completeOnboarding = useUserStore((s) => s.completeOnboarding);
   const nameInputRef = useRef(null);
 
@@ -37,17 +34,6 @@ export default function OnboardingFlow({ onComplete }) {
     const trimmed = name.trim();
     if (!trimmed) return;
     setUserName(trimmed);
-    setStep(STEPS.REMINDER);
-  };
-
-  const handleReminderEnable = (time) => {
-    updatePreferences({ reminderEnabled: true, reminderTime: time });
-    completeOnboarding();
-    onComplete();
-  };
-
-  const handleReminderSkip = () => {
-    updatePreferences({ reminderEnabled: false });
     completeOnboarding();
     onComplete();
   };
@@ -85,10 +71,6 @@ export default function OnboardingFlow({ onComplete }) {
               {t('common.done')}
             </button>
           </form>
-        )}
-
-        {step === STEPS.REMINDER && (
-          <ReminderModal onEnable={handleReminderEnable} onSkip={handleReminderSkip} />
         )}
       </div>
     </div>

@@ -18,8 +18,8 @@ export default function History() {
   const sorted = [...messages].sort((a, b) => b.createdAt - a.createdAt);
 
   const filtered = sorted.filter((m) => {
-    if (filter === 'reflected') return m.reflection !== null;
-    if (filter === 'unreflected') return m.reflection === null;
+    if (filter === 'reflected') return !!m.reflection;
+    if (filter === 'unreflected') return !m.reflection;
     return true;
   });
 

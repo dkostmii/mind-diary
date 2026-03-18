@@ -2,9 +2,6 @@ export default {
   app: 'Mind Diary',
   onboarding: {
     namePrompt: 'Як тебе звати?',
-    reminderTitle: 'Щоденне нагадування',
-    reminderEnable: 'Увімкнути',
-    reminderSkip: 'Пропустити',
     welcome: 'Вітаємо, {name}!',
   },
   journal: {
@@ -22,7 +19,7 @@ export default {
     originalDate: 'Ти написав(ла) {date}',
   },
   history: {
-    title: 'Історія',
+    title: 'Пригадати',
     filterAll: 'Усі',
     filterUnreflected: 'Без рефлексії',
     filterReflected: 'З рефлексією',
@@ -40,16 +37,17 @@ export default {
     title: 'Налаштування',
     nameLabel: 'Імʼя',
     languageLabel: 'Мова',
-    reminderLabel: 'Нагадування',
-    reminderTimeLabel: 'Час нагадування',
-    permissionGranted: 'Дозволено',
-    permissionDenied: 'Заблоковано',
-    permissionUnsupported: 'Не підтримується',
     export: 'Експортувати',
     import: 'Імпортувати',
     exportCount: '{count} записів',
     importSuccess: 'Імпортовано {count} записів',
     importError: 'Не вдалося імпортувати файл',
+  },
+  nav: {
+    journal: 'Журнал',
+    reflect: 'Рефлексія',
+    history: 'Пригадати',
+    settings: 'Налаштування',
   },
   common: {
     save: 'Зберегти',

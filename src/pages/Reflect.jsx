@@ -5,7 +5,7 @@ import ReflectCard from '../components/reflect/ReflectCard';
 
 function getNextReflectionEntry(messages) {
   return messages
-    .filter((m) => m.reflection === null)
+    .filter((m) => !m.reflection)
     .sort((a, b) => a.createdAt - b.createdAt)[0];
 }
 
@@ -45,7 +45,7 @@ export default function Reflect() {
         </h1>
       </header>
       <div className="flex-1 overflow-y-auto">
-        <ReflectCard message={message} onReflect={addReflection} />
+        <ReflectCard key={message.id} message={message} onReflect={addReflection} />
       </div>
     </div>
   );
