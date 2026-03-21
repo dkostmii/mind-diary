@@ -24,11 +24,6 @@ export default function OnboardingFlow({ onComplete }) {
     }
   }, [step]);
 
-  const handleLanguageSelect = (lang) => {
-    setLanguage(lang);
-    setStep(STEPS.NAME);
-  };
-
   const handleNameSubmit = (e) => {
     e.preventDefault();
     const trimmed = name.trim();
@@ -46,7 +41,16 @@ export default function OnboardingFlow({ onComplete }) {
             <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-200 text-center">
               Mind Diary
             </h1>
-            <LanguageSelector value={language} onChange={handleLanguageSelect} />
+            <p className="text-sm text-stone-500 dark:text-stone-400 text-center">
+              {t('onboarding.appDescription')}
+            </p>
+            <LanguageSelector value={language} onChange={setLanguage} />
+            <button
+              onClick={() => setStep(STEPS.NAME)}
+              className="w-full py-3 rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-700 active:bg-indigo-800 transition-colors"
+            >
+              {t('common.done')}
+            </button>
           </div>
         )}
 

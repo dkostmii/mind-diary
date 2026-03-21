@@ -1,14 +1,28 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#4f46e5" />
-    <link rel="manifest" href="/manifest.json" />
-    <title>Mind Diary</title>
-  </head>
-  <body class="bg-stone-50 dark:bg-stone-900 text-stone-900 dark:text-stone-100 min-h-screen">
-    <div id="root"></div>
-    <script type="module" src="/src/index.jsx"></script>
-  </body>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
+        <meta name="theme-color" content="#4f46e5" />
+        <meta name="description" content="A private journaling app for self-reflection. Write down your thoughts, reflect on them later, and recall your journey — all data stays on your device." />
+        <meta name="keywords" content="journal, diary, self-reflection, mindfulness, private, offline, PWA" />
+        <meta property="og:title" content="Mind Diary" />
+        <meta property="og:description" content="A private journaling app for self-reflection. Write your thoughts, reflect on them later, and recall your journey." />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="/open-book-noto-512.png" />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Mind Diary" />
+        <meta name="twitter:description" content="A private journaling app for self-reflection. Write your thoughts, reflect on them later, and recall your journey." />
+        <meta name="twitter:image" content="/open-book-noto-512.png" />
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/open-book-noto-192.png" />
+        <link rel="apple-touch-icon" href="/open-book-noto-192.png" />
+        <title>Mind Diary — Private Journaling for Self-Reflection</title>
+    </head>
+    <body
+        class="bg-stone-50 dark:bg-stone-900 text-stone-900 dark:text-stone-100 h-dvh overflow-hidden"
+    >
+        <div class="h-full flex flex-col overflow-hidden" id="root"></div>
+        <script type="module" src="/src/index.jsx"></script>
+    </body>
 </html>

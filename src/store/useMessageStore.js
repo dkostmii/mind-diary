@@ -15,7 +15,9 @@ const useMessageStore = create((set, get) => ({
   addMessage: async (text) => {
     const now = Date.now();
     const message = {
-      id: crypto.randomUUID(),
+      id: typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
       text,
       createdAt: now,
       date: format(new Date(now), 'yyyy-MM-dd'),

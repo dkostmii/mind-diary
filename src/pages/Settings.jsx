@@ -4,6 +4,7 @@ import useUserStore from '../store/useUserStore';
 import useMessageStore from '../store/useMessageStore';
 import LanguageSelector from '../components/shared/LanguageSelector';
 import { exportMessages, importMessages } from '../utils/exportData';
+import FixedHeader from '../components/shared/FixedHeader';
 
 export default function Settings() {
   const { t } = useTranslation();
@@ -28,14 +29,17 @@ export default function Settings() {
   }
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto">
-      <header className="px-4 py-3 border-b border-stone-200 dark:border-stone-700">
-        <h1 className="text-lg font-semibold text-stone-800 dark:text-stone-200">
-          {t('settings.title')}
-        </h1>
-      </header>
+    <div className="flex flex-col h-full overflow-hidden">
+      <FixedHeader className="px-4 py-3 border-b border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">⚙️</span>
+          <h1 className="text-lg font-semibold text-stone-800 dark:text-stone-200">
+            {t('settings.title')}
+          </h1>
+        </div>
+      </FixedHeader>
 
-      <div className="p-4 space-y-6 max-w-lg mx-auto w-full">
+      <div className="flex-1 overflow-y-auto min-h-0 p-4 space-y-6 max-w-lg mx-auto w-full">
         {/* Name */}
         <section className="bg-white dark:bg-stone-800 rounded-2xl p-4 shadow-sm space-y-3">
           <h2 className="text-sm font-semibold text-stone-700 dark:text-stone-200">

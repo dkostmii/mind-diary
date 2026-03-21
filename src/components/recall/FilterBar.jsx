@@ -6,9 +6,9 @@ export default function FilterBar({ active, onChange }) {
   const { t } = useTranslation();
 
   const labels = {
-    all: t('history.filterAll'),
-    unreflected: t('history.filterUnreflected'),
-    reflected: t('history.filterReflected'),
+    all: t('recall.filterAll'),
+    unreflected: t('recall.filterUnreflected'),
+    reflected: t('recall.filterReflected'),
   };
 
   return (

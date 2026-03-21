@@ -14,7 +14,7 @@ export default function MessageFeed({ messages, onDelete, onEdit }) {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-2">
+    <div className="flex-1 overflow-y-auto px-4 py-2 min-h-0">
       {messages.map((msg) => (
         <MessageCard key={msg.id} message={msg} onDelete={onDelete} onEdit={onEdit} />
       ))}

@@ -34,8 +34,8 @@ src/
 │   ├── reflect/
 │   │   ├── ReflectCard.jsx  # Past message card with reflection compose area
 │   │   └── ReflectionBadge.jsx # Small indicator that a message has been reflected on
-│   ├── history/
-│   │   ├── HistoryFeed.jsx  # Full message history with filters
+│   ├── recall/
+│   │   ├── RecallFeed.jsx   # Full message recall with filters
 │   │   └── FilterBar.jsx    # All / Unreflected / Reflected toggle
 │   ├── summary/
 │   │   └── WeeklySummary.jsx # Stats: entries, streak, reflections, ratio
@@ -52,7 +52,7 @@ src/
 ├── pages/
 │   ├── Journal.jsx          # Main screen — message feed + compose
 │   ├── Reflect.jsx          # Reflection screen — past message + reply compose
-│   ├── History.jsx          # Browse all messages with filters
+│   ├── Recall.jsx           # Browse all messages with filters
 │   ├── Settings.jsx         # Name, language, export
 │   └── Onboarding.jsx       # First-launch flow
 ├── utils/
@@ -146,7 +146,7 @@ Each translation file (`uk.js`, `en.js`) exports a flat-nested object with these
 - `onboarding` — first-launch strings (namePrompt, welcome)
 - `journal` — main screen (placeholder, send, emptyState, today, yesterday)
 - `reflect` — reflection screen (title, prompt, placeholder, emptyState, originalDate)
-- `history` — history screen (title, filterAll, filterUnreflected, filterReflected, reflectionLabel)
+- `recall` — recall screen (title, filterAll, filterUnreflected, filterReflected, reflectionLabel)
 - `summary` — weekly summary (title, entriesThisWeek, streak, days, totalReflections, reflectionRatio)
 - `settings` — settings screen (all labels, export buttons)
 - `common` — shared (save, cancel, skip, done, back)
@@ -207,7 +207,7 @@ function getNextReflectionEntry(messages) {
 - Below: compose area labeled `t('reflect.prompt')` — "Відповідь минулому собі"
 - Send button saves reflection to `message.reflection`
 - After saving: show next available entry, or empty state if none left
-- Users can also reflect on any message from History by tapping it
+- Users can also reflect on any message from Recall by tapping it
 
 ### Rules
 - One reflection per message (no chains in MVP)
@@ -215,7 +215,7 @@ function getNextReflectionEntry(messages) {
 - Oldest unreflected message surfaces first
 - Empty state: `t('reflect.emptyState')`
 
-## History screen
+## Recall screen
 
 Browse all past messages with filtering.
 
@@ -292,7 +292,7 @@ function downloadFile(content, filename, mimeType) {
 
 - **Name**: editable text field
 - **Language**: uk/en toggle (applying immediately)
-- **Export**: `t('settings.exportJSON')` and `t('settings.exportCSV')` buttons with message count
+- **Export/Import**: export and import buttons with message count
 
 ## Key implementation rules
 
@@ -313,12 +313,13 @@ function downloadFile(content, filename, mimeType) {
 - Onboarding (language → name)
 - Journal feed (write messages, multiple per day, messaging-style UI)
 - Reflection (reply to past self, oldest unreflected surfaced first, no minimum gap)
-- History (browse all messages, filter by reflected/unreflected, tap to reflect)
+- Recall (browse all messages, filter by reflected/unreflected, tap to reflect)
 - Weekly summary (entries count, streak, reflections count, reflection ratio)
 - Data export (JSON and CSV, in-browser download)
-- Settings (name, language, export)
+- Settings (name, language, export/import)
 - Ukrainian language (primary) + English (secondary)
 - Dark mode
+- PWA manifest for offline
 
 ### Out of scope (post-MVP)
 - Push notifications / reminders (requires server-side push infrastructure)

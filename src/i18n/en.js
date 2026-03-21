@@ -1,28 +1,36 @@
 export default {
   app: 'Mind Diary',
   onboarding: {
-    namePrompt: 'What is your name?',
+    appDescription: 'A private diary just for you. Write down your thoughts, reflect on them later, and recall your journey — all on your device.',
+    namePrompt: 'Nice to meet you! What should we call you?',
     welcome: 'Welcome, {name}!',
   },
   journal: {
+    subtitle: 'Write down your thoughts',
     placeholder: 'Write something...',
-    send: 'Send',
-    emptyState: 'Nothing here yet. Write your first thought 💭',
+    send: 'Write',
+    emptyState: 'Begin your journey — write your first thought 💭',
     today: 'Today',
     yesterday: 'Yesterday',
   },
   reflect: {
     title: 'Reflection',
-    prompt: 'Reply to your past self',
-    placeholder: 'What would you say to your past self?',
-    emptyState: 'No entries to reflect on yet. Come back in a few days.',
+    subtitle: 'Reply to your past self',
+    prompt: 'What would you say?',
+    placeholder: 'Reply to yourself...',
+    emptyState: 'Your reflections will appear here. Start by writing something in the 📝 Journal.',
     originalDate: 'You wrote on {date}',
   },
-  history: {
+  recall: {
     title: 'Recall',
+    subtitle: 'Recall your thoughts and reflections',
     filterAll: 'All',
     filterUnreflected: 'Unreflected',
     filterReflected: 'Reflected',
+    emptyState: 'Your story starts in the 📝 Journal. Everything you write will appear here.',
+    authorWrites: '{name} writes',
+    authorReflects: '{name} reflects',
+    reflected: 'Reflected',
     reflectionLabel: 'Reflection',
   },
   summary: {
@@ -46,8 +54,15 @@ export default {
   nav: {
     journal: 'Journal',
     reflect: 'Reflect',
-    history: 'Recall',
+    recall: 'Recall',
     settings: 'Settings',
+  },
+  help: {
+    title: 'How Mind Diary works',
+    journal: 'This is where it all begins. A thought crosses your mind — write it down. No rules, no structure, just you and your words.',
+    reflect: 'Time passes, and your old entries resurface here. Read what you once wrote and reply — sometimes you will surprise yourself.',
+    recall: 'Everything you have written lives here. Scroll through your journey, revisit old reflections, or find that one thought you almost forgot.',
+    settings: 'Make the app yours — your name, your language, or a full export of your story. Your data never leaves your device.',
   },
   common: {
     save: 'Save',
@@ -58,5 +73,6 @@ export default {
     delete: 'Delete',
     edit: 'Edit',
     confirmDelete: 'Are you sure?',
+    deleteConfirmMessage: 'This action cannot be undone.',
   },
 };
