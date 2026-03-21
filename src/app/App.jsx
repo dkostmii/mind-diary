@@ -1,34 +1,43 @@
-import { HashRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
-import { useEffect, useState } from 'react';
-import { LanguageProvider } from '../i18n';
-import useUserStore from '../store/useUserStore';
-import useMessageStore from '../store/useMessageStore';
-import routes from './routes';
+import {
+  HashRouter,
+  Routes,
+  Route,
+  Navigate,
+  Link,
+  useLocation,
+} from "react-router-dom";
+import { useEffect, useState } from "react";
+import { LanguageProvider, useTranslation } from "../i18n";
+import useUserStore from "../store/useUserStore";
+import useMessageStore from "../store/useMessageStore";
+import routes from "./routes";
 
 function NavBar() {
   const location = useLocation();
-  if (location.pathname === '/onboarding') return null;
+  const { t } = useTranslation();
+  if (location.pathname === "/onboarding") return null;
 
   const links = [
-    { to: '/', label: '📝', name: 'Journal' },
-    { to: '/reflect', label: '💭', name: 'Reflect' },
-    { to: '/history', label: '📖', name: 'History' },
-    { to: '/settings', label: '⚙️', name: 'Settings' },
+    { to: "/", label: "📝", nameKey: "nav.journal" },
+    { to: "/reflect", label: "💭", nameKey: "nav.reflect" },
+    { to: "/recall", label: "📖", nameKey: "nav.recall" },
+    { to: "/settings", label: "⚙️", nameKey: "nav.settings" },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-stone-800 border-t border-stone-200 dark:border-stone-700 z-50">
+    <nav className="shrink-0 bg-white dark:bg-stone-800 border-t border-stone-200 dark:border-stone-700 z-50">
       <div className="max-w-md mx-auto flex justify-around py-2">
-        {links.map(({ to, label, name }) => {
+        {links.map(({ to, label, nameKey }) => {
           const active = location.pathname === to;
+          const name = t(nameKey);
           return (
             <Link
               key={to}
               to={to}
               className={`flex flex-col items-center gap-0.5 px-3 py-1 text-xs transition-colors ${
                 active
-                  ? 'text-indigo-600 dark:text-indigo-400'
-                  : 'text-stone-500 dark:text-stone-400'
+                  ? "text-indigo-600 dark:text-indigo-400"
+                  : "text-stone-500 dark:text-stone-400"
               }`}
               aria-label={name}
             >
@@ -48,7 +57,10 @@ function AppContent() {
   if (!onboardingComplete) {
     return (
       <Routes>
-        <Route path="/onboarding" element={routes.find((r) => r.path === '/onboarding').element} />
+        <Route
+          path="/onboarding"
+          element={routes.find((r) => r.path === "/onboarding").element}
+        />
         <Route path="*" element={<Navigate to="/onboarding" replace />} />
       </Routes>
     );
@@ -56,10 +68,10 @@ function AppContent() {
 
   return (
     <>
-      <div className="pb-16 h-[calc(100dvh-4rem)] flex flex-col">
+      <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
         <Routes>
           {routes
-            .filter((r) => r.path !== '/onboarding')
+            .filter((r) => r.path !== "/onboarding")
             .map((r) => (
               <Route key={r.path} path={r.path} element={r.element} />
             ))}

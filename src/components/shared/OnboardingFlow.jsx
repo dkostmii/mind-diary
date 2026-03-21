@@ -1,13 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from '../../i18n';
 import LanguageSelector from './LanguageSelector';
-import ReminderModal from './ReminderModal';
 import useUserStore from '../../store/useUserStore';
 
 const STEPS = {
   LANGUAGE: 0,
   NAME: 1,
-  REMINDER: 2,
 };
 
 export default function OnboardingFlow({ onComplete }) {
@@ -17,7 +15,6 @@ export default function OnboardingFlow({ onComplete }) {
   const language = useUserStore((s) => s.language);
   const setLanguage = useUserStore((s) => s.setLanguage);
   const setUserName = useUserStore((s) => s.setName);
-  const updatePreferences = useUserStore((s) => s.updatePreferences);
   const completeOnboarding = useUserStore((s) => s.completeOnboarding);
   const nameInputRef = useRef(null);
 
@@ -27,27 +24,11 @@ export default function OnboardingFlow({ onComplete }) {
     }
   }, [step]);
 
-  const handleLanguageSelect = (lang) => {
-    setLanguage(lang);
-    setStep(STEPS.NAME);
-  };
-
   const handleNameSubmit = (e) => {
     e.preventDefault();
     const trimmed = name.trim();
     if (!trimmed) return;
     setUserName(trimmed);
-    setStep(STEPS.REMINDER);
-  };
-
-  const handleReminderEnable = (time) => {
-    updatePreferences({ reminderEnabled: true, reminderTime: time });
-    completeOnboarding();
-    onComplete();
-  };
-
-  const handleReminderSkip = () => {
-    updatePreferences({ reminderEnabled: false });
     completeOnboarding();
     onComplete();
   };
@@ -60,7 +41,16 @@ export default function OnboardingFlow({ onComplete }) {
             <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-200 text-center">
               Mind Diary
             </h1>
-            <LanguageSelector value={language} onChange={handleLanguageSelect} />
+            <p className="text-sm text-stone-500 dark:text-stone-400 text-center">
+              {t('onboarding.appDescription')}
+            </p>
+            <LanguageSelector value={language} onChange={setLanguage} />
+            <button
+              onClick={() => setStep(STEPS.NAME)}
+              className="w-full py-3 rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-700 active:bg-indigo-800 transition-colors"
+            >
+              {t('common.done')}
+            </button>
           </div>
         )}
 
@@ -85,10 +75,6 @@ export default function OnboardingFlow({ onComplete }) {
               {t('common.done')}
             </button>
           </form>
-        )}
-
-        {step === STEPS.REMINDER && (
-          <ReminderModal onEnable={handleReminderEnable} onSkip={handleReminderSkip} />
         )}
       </div>
     </div>
