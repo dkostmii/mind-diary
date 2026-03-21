@@ -196,7 +196,7 @@ Surfaces old messages and lets the user reply to their past self.
 ```js
 function getNextReflectionEntry(messages) {
   return messages
-    .filter(m => m.reflection === null)        // Not yet reflected
+    .filter(m => !m.reflection)                // Not yet reflected
     .sort((a, b) => a.createdAt - b.createdAt) // Oldest first
     [0];                                        // Take first match
 }
@@ -211,6 +211,7 @@ function getNextReflectionEntry(messages) {
 
 ### Rules
 - One reflection per message (no chains in MVP)
+- No minimum gap — users can reflect on any message immediately
 - Oldest unreflected message surfaces first
 - Empty state: `t('reflect.emptyState')`
 
@@ -311,7 +312,7 @@ function downloadFile(content, filename, mimeType) {
 ### In scope
 - Onboarding (language → name)
 - Journal feed (write messages, multiple per day, messaging-style UI)
-- Reflection (reply to past self, oldest unreflected surfaced first)
+- Reflection (reply to past self, oldest unreflected surfaced first, no minimum gap)
 - Recall (browse all messages, filter by reflected/unreflected, tap to reflect)
 - Weekly summary (entries count, streak, reflections count, reflection ratio)
 - Data export (JSON and CSV, in-browser download)
@@ -321,6 +322,7 @@ function downloadFile(content, filename, mimeType) {
 - PWA manifest for offline
 
 ### Out of scope (post-MVP)
+- Push notifications / reminders (requires server-side push infrastructure)
 - Custom themes / colors (premium)
 - Photo attachments (premium)
 - Reflection chains (multiple replies to one message)

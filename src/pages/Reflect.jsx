@@ -9,7 +9,7 @@ import FixedHeader from '../components/shared/FixedHeader';
 
 function getNextReflectionEntry(messages) {
   return messages
-    .filter((m) => m.reflection === null)
+    .filter((m) => !m.reflection)
     .sort((a, b) => a.createdAt - b.createdAt)[0];
 }
 
@@ -68,7 +68,7 @@ export default function Reflect() {
         {headerContent}
       </FixedHeader>
       <div className="flex-1 overflow-y-auto min-h-0">
-        <ReflectCard message={message} />
+        <ReflectCard key={message.id} message={message} />
       </div>
       <ReflectComposeBar messageId={message.id} onReflect={addReflection} />
       <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
