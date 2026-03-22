@@ -7,6 +7,7 @@ import {
   useLocation,
 } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { Analytics } from "@vercel/analytics/react";
 import { LanguageProvider, useTranslation } from "../i18n";
 import useUserStore from "../store/useUserStore";
 import useMessageStore from "../store/useMessageStore";
@@ -105,6 +106,7 @@ export default function App() {
       <HashRouter>
         <AppContent />
       </HashRouter>
+      <Analytics />
     </LanguageProvider>
   );
 }
