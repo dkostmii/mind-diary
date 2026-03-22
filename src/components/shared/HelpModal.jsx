@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { useTranslation } from '../../i18n';
 
@@ -11,6 +11,8 @@ const sections = [
 
 export default function HelpModal({ open, onClose }) {
   const { t } = useTranslation();
+  const backdropRef = useRef(null);
+  const pointerDownTarget = useRef(null);
 
   useEffect(() => {
     if (!open) return;
@@ -21,16 +23,29 @@ export default function HelpModal({ open, onClose }) {
     return () => document.removeEventListener('keydown', handleKey);
   }, [open, onClose]);
 
+  useEffect(() => {
+    if (!open) return;
+    const root = document.getElementById('root');
+    if (root) root.setAttribute('inert', '');
+    return () => {
+      if (root) root.removeAttribute('inert');
+    };
+  }, [open]);
+
   if (!open) return null;
 
   return (
     <div
+      ref={backdropRef}
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40"
-      onClick={onClose}
+      onPointerDown={(e) => { pointerDownTarget.current = e.target; }}
+      onClick={(e) => {
+        if (e.target === backdropRef.current && pointerDownTarget.current === backdropRef.current) onClose();
+        pointerDownTarget.current = null;
+      }}
     >
       <div
         className="bg-white dark:bg-stone-800 rounded-2xl shadow-xl mx-4 w-full max-w-sm max-h-[80vh] flex flex-col relative"
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 pt-6 pb-4">
           <h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">

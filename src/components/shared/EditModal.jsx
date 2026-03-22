@@ -34,6 +34,15 @@ export default function EditModal({ open, initialText, initialImages, initialLoc
     return () => document.removeEventListener('keydown', handleKey);
   }, [open, fullscreen, onCancel]);
 
+  useEffect(() => {
+    if (!open) return;
+    const root = document.getElementById('root');
+    if (root) root.setAttribute('inert', '');
+    return () => {
+      if (root) root.removeAttribute('inert');
+    };
+  }, [open]);
+
   const handlePaste = useCallback(async (e) => {
     const items = Array.from(e.clipboardData?.items || []);
     const imageFiles = items
@@ -119,11 +128,9 @@ export default function EditModal({ open, initialText, initialImages, initialLoc
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40"
-      onClick={onCancel}
     >
       <div
         className="bg-white dark:bg-stone-800 rounded-2xl shadow-xl mx-4 w-full max-w-sm h-[80vh] p-6 relative flex flex-col"
-        onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onCancel}
@@ -166,27 +173,25 @@ export default function EditModal({ open, initialText, initialImages, initialLoc
             </button>
           </div>
         </div>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4">
-          <div className="flex items-center gap-2">
-            <ImageAttachButton images={images} onChange={setImages} label={t('common.attachPhoto')} maxLabel={t('common.maxPhotosReached')} />
-            {!location && <LocationAttachButton location={null} onChange={setLocation} label={t('common.attachLocation')} />}
-          </div>
-          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            <button
-              onClick={onCancel}
-              className="w-full sm:w-auto px-4 py-2 text-sm rounded-lg bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-300 dark:hover:bg-stone-600 transition-colors"
-            >
-              {t('common.cancel')}
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={!text.trim() && !images.length}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-indigo-600 text-white disabled:opacity-40 hover:bg-indigo-700 transition-colors"
-            >
-              <Check size={14} />
-              {t('common.save')}
-            </button>
-          </div>
+        <div className="flex gap-2 mt-4">
+          <ImageAttachButton images={images} onChange={setImages} label={t('common.attachPhoto')} maxLabel={t('common.maxPhotosReached')} fullWidth />
+          {!location && <LocationAttachButton location={null} onChange={setLocation} label={t('common.attachLocation')} fullWidth />}
+        </div>
+        <div className="flex gap-3 mt-3">
+          <button
+            onClick={onCancel}
+            className="flex-1 px-4 py-2 text-sm rounded-lg bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-300 dark:hover:bg-stone-600 transition-colors"
+          >
+            {t('common.cancel')}
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={!text.trim() && !images.length}
+            className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-indigo-600 text-white disabled:opacity-40 hover:bg-indigo-700 transition-colors"
+          >
+            <Check size={14} />
+            {t('common.save')}
+          </button>
         </div>
       </div>
     </div>

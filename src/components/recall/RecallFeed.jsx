@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
 import { Virtuoso } from 'react-virtuoso';
@@ -43,22 +44,18 @@ export default function RecallFeed({
                 : 'border-indigo-200 dark:border-indigo-800'
             }`}
           >
-            {/* Message */}
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-stone-500 dark:text-stone-400 mb-1">
-                  {t('recall.authorWrites', { name: userName })} — {dateStr}
+            {/* Message header */}
+            <div className="flex items-start justify-between gap-2 mb-1">
+              <div>
+                <p className="text-xs text-stone-400 dark:text-stone-500">{dateStr}</p>
+                <p className="text-sm text-stone-500 dark:text-stone-400">
+                  {t('recall.authorWrites', { name: userName })}
                 </p>
-                <p className="text-stone-800 dark:text-stone-200 whitespace-pre-wrap break-words">
-                  <LinkifyText>{msg.text}</LinkifyText>
-                </p>
-                <ImageThumbnails images={msg.images} />
-                <LocationButton location={msg.location} />
               </div>
               {msg.reflection ? (
                 <span className="flex items-center gap-1.5 shrink-0">
                   <ReflectionBadge />
-                  <span className="text-xs text-indigo-500 dark:text-indigo-400">{t('recall.reflected')}</span>
+                  <span className="text-sm text-indigo-500 dark:text-indigo-400">{t('recall.reflected')}</span>
                 </span>
               ) : (
                 <button
@@ -70,6 +67,13 @@ export default function RecallFeed({
                 </button>
               )}
             </div>
+
+            {/* Message content */}
+            <p className="text-stone-800 dark:text-stone-200 whitespace-pre-wrap break-words">
+              <LinkifyText>{msg.text}</LinkifyText>
+            </p>
+            <ImageThumbnails images={msg.images} />
+            <LocationButton location={msg.location} />
 
             {/* Message actions */}
             <div className="flex gap-1 mt-2" onClick={(e) => e.stopPropagation()}>
@@ -136,32 +140,44 @@ export default function RecallFeed({
         itemContent={itemContent}
       />
 
-      <EditModal
-        open={editingMsg !== null}
-        initialText={editingMsgData?.text || ''}
-        initialImages={editingMsgData?.images}
-        initialLocation={editingMsgData?.location}
-        onSave={(text, images, location) => { onEditMessage(editingMsg, text, images, location); setEditingMsg(null); }}
-        onCancel={() => setEditingMsg(null)}
-      />
-      <EditModal
-        open={editingRef !== null}
-        initialText={editingRefData?.reflection?.text || ''}
-        initialImages={editingRefData?.reflection?.images}
-        initialLocation={editingRefData?.reflection?.location}
-        onSave={(text, images, location) => { onEditReflection(editingRef, text, images, location); setEditingRef(null); }}
-        onCancel={() => setEditingRef(null)}
-      />
-      <ConfirmModal
-        open={confirmingMsg !== null}
-        onConfirm={() => { onDeleteMessage(confirmingMsg); setConfirmingMsg(null); }}
-        onCancel={() => setConfirmingMsg(null)}
-      />
-      <ConfirmModal
-        open={confirmingRef !== null}
-        onConfirm={() => { onDeleteReflection(confirmingRef); setConfirmingRef(null); }}
-        onCancel={() => setConfirmingRef(null)}
-      />
+      {editingMsg !== null && createPortal(
+        <EditModal
+          open
+          initialText={editingMsgData?.text || ''}
+          initialImages={editingMsgData?.images}
+          initialLocation={editingMsgData?.location}
+          onSave={(text, images, location) => { onEditMessage(editingMsg, text, images, location); setEditingMsg(null); }}
+          onCancel={() => setEditingMsg(null)}
+        />,
+        document.body
+      )}
+      {editingRef !== null && createPortal(
+        <EditModal
+          open
+          initialText={editingRefData?.reflection?.text || ''}
+          initialImages={editingRefData?.reflection?.images}
+          initialLocation={editingRefData?.reflection?.location}
+          onSave={(text, images, location) => { onEditReflection(editingRef, text, images, location); setEditingRef(null); }}
+          onCancel={() => setEditingRef(null)}
+        />,
+        document.body
+      )}
+      {confirmingMsg !== null && createPortal(
+        <ConfirmModal
+          open
+          onConfirm={() => { onDeleteMessage(confirmingMsg); setConfirmingMsg(null); }}
+          onCancel={() => setConfirmingMsg(null)}
+        />,
+        document.body
+      )}
+      {confirmingRef !== null && createPortal(
+        <ConfirmModal
+          open
+          onConfirm={() => { onDeleteReflection(confirmingRef); setConfirmingRef(null); }}
+          onCancel={() => setConfirmingRef(null)}
+        />,
+        document.body
+      )}
     </>
   );
 }

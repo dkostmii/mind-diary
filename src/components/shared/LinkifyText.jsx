@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { useTranslation } from '../../i18n';
 import ImageGallery from './ImageGallery';
@@ -226,6 +226,8 @@ function MediaEmbedContent({ url }) {
 
 function MediaModal({ url, onClose }) {
   const { t } = useTranslation();
+  const backdropRef = useRef(null);
+  const pointerDownTarget = useRef(null);
 
   useEffect(() => {
     const handleKey = (e) => {
@@ -237,12 +239,16 @@ function MediaModal({ url, onClose }) {
 
   return (
     <div
+      ref={backdropRef}
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40"
-      onClick={onClose}
+      onPointerDown={(e) => { pointerDownTarget.current = e.target; }}
+      onClick={(e) => {
+        if (e.target === backdropRef.current && pointerDownTarget.current === backdropRef.current) onClose();
+        pointerDownTarget.current = null;
+      }}
     >
       <div
         className="bg-white dark:bg-stone-800 rounded-2xl shadow-xl mx-4 w-full max-w-lg p-4"
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm font-medium text-stone-600 dark:text-stone-300">

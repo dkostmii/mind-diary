@@ -159,7 +159,7 @@ export default function LocationPicker({ open, onConfirm, onClose, initialLocati
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-stone-50 dark:bg-stone-900">
+    <div className="fixed inset-0 z-[200] flex flex-col bg-stone-50 dark:bg-stone-900">
       <div className="flex items-center justify-between px-4 py-3 border-b border-stone-200 dark:border-stone-700 z-10">
         <button
           onClick={onClose}

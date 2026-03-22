@@ -101,7 +101,7 @@ export function ImageAttachButton({ images = [], onChange, label, maxLabel, full
           atMax
             ? 'text-stone-300 dark:text-stone-600 cursor-not-allowed'
             : 'text-stone-400 hover:text-indigo-600 hover:bg-stone-100 dark:hover:bg-stone-800'
-        } ${label || maxLabel ? 'px-3 py-1.5 text-sm' : 'p-2'} ${fullWidth ? 'w-full sm:w-auto' : ''}`}
+        } ${label || maxLabel ? 'px-3 py-1.5 text-sm' : 'p-2'} ${fullWidth ? 'flex-1' : ''}`}
         aria-label="Attach image"
       >
         <ImagePlus size={label || maxLabel ? 16 : 20} />

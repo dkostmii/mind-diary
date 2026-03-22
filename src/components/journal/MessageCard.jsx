@@ -1,18 +1,13 @@
-import { useState } from 'react';
 import { format, isToday, isYesterday } from 'date-fns';
 import { uk } from 'date-fns/locale';
 import { Pencil, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../i18n';
-import ConfirmModal from '../shared/ConfirmModal';
-import EditModal from '../shared/EditModal';
 import LinkifyText from '../shared/LinkifyText';
 import ImageThumbnails from '../shared/ImageThumbnails';
 import LocationButton from '../shared/LocationButton';
 
-export default function MessageCard({ message, onDelete, onEdit }) {
+export default function MessageCard({ message, onEdit, onDelete }) {
   const { t, lang } = useTranslation();
-  const [confirming, setConfirming] = useState(false);
-  const [editing, setEditing] = useState(false);
   const date = new Date(message.createdAt);
   const locale = lang === 'uk' ? { locale: uk } : {};
 
@@ -31,7 +26,7 @@ export default function MessageCard({ message, onDelete, onEdit }) {
         <p className="text-sm text-stone-500 dark:text-stone-400">{dateStr}</p>
         <div className="flex gap-1">
           <button
-            onClick={() => setEditing(true)}
+            onClick={() => onEdit(message.id)}
             className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg text-stone-500 hover:text-indigo-600 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
             aria-label={t('common.edit')}
           >
@@ -39,7 +34,7 @@ export default function MessageCard({ message, onDelete, onEdit }) {
             {t('common.edit')}
           </button>
           <button
-            onClick={() => setConfirming(true)}
+            onClick={() => onDelete(message.id)}
             className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg text-stone-500 hover:text-red-600 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
             aria-label={t('common.delete')}
           >
@@ -54,20 +49,6 @@ export default function MessageCard({ message, onDelete, onEdit }) {
       </p>
       <ImageThumbnails images={message.images} />
       <LocationButton location={message.location} />
-
-      <EditModal
-        open={editing}
-        initialText={message.text}
-        initialImages={message.images}
-        initialLocation={message.location}
-        onSave={(text, images, location) => { onEdit(message.id, text, images, location); setEditing(false); }}
-        onCancel={() => setEditing(false)}
-      />
-      <ConfirmModal
-        open={confirming}
-        onConfirm={() => { setConfirming(false); onDelete(message.id); }}
-        onCancel={() => setConfirming(false)}
-      />
     </div>
   );
 }

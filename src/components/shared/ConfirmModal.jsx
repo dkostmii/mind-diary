@@ -5,6 +5,8 @@ import { useTranslation } from '../../i18n';
 export default function ConfirmModal({ open, onConfirm, onCancel }) {
   const { t } = useTranslation();
   const cancelRef = useRef(null);
+  const backdropRef = useRef(null);
+  const pointerDownTarget = useRef(null);
 
   useEffect(() => {
     if (open && cancelRef.current) {
@@ -21,16 +23,29 @@ export default function ConfirmModal({ open, onConfirm, onCancel }) {
     return () => document.removeEventListener('keydown', handleKey);
   }, [open, onCancel]);
 
+  useEffect(() => {
+    if (!open) return;
+    const root = document.getElementById('root');
+    if (root) root.setAttribute('inert', '');
+    return () => {
+      if (root) root.removeAttribute('inert');
+    };
+  }, [open]);
+
   if (!open) return null;
 
   return (
     <div
+      ref={backdropRef}
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40"
-      onClick={onCancel}
+      onPointerDown={(e) => { pointerDownTarget.current = e.target; }}
+      onClick={(e) => {
+        if (e.target === backdropRef.current && pointerDownTarget.current === backdropRef.current) onCancel();
+        pointerDownTarget.current = null;
+      }}
     >
       <div
         className="bg-white dark:bg-stone-800 rounded-2xl shadow-xl mx-4 w-full max-w-sm p-6 relative"
-        onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onCancel}
@@ -45,17 +60,17 @@ export default function ConfirmModal({ open, onConfirm, onCancel }) {
         <p className="text-sm text-stone-500 dark:text-stone-400 mb-6">
           {t('common.deleteConfirmMessage')}
         </p>
-        <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
+        <div className="flex gap-3">
           <button
             ref={cancelRef}
             onClick={onCancel}
-            className="w-full sm:w-auto px-4 py-2 text-sm rounded-lg bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-300 dark:hover:bg-stone-600 transition-colors"
+            className="flex-1 px-4 py-2 text-sm rounded-lg bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-300 dark:hover:bg-stone-600 transition-colors"
           >
             {t('common.cancel')}
           </button>
           <button
             onClick={onConfirm}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
+            className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
           >
             <Trash2 size={14} />
             {t('common.delete')}
