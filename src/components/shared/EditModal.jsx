@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { X, Check } from 'lucide-react';
 import { useTranslation } from '../../i18n';
 
 export default function EditModal({ open, initialText, onSave, onCancel }) {
@@ -35,9 +36,16 @@ export default function EditModal({ open, initialText, onSave, onCancel }) {
       onClick={onCancel}
     >
       <div
-        className="bg-white dark:bg-stone-800 rounded-2xl shadow-xl mx-4 w-full max-w-sm p-6"
+        className="bg-white dark:bg-stone-800 rounded-2xl shadow-xl mx-4 w-full max-w-sm p-6 relative"
         onClick={(e) => e.stopPropagation()}
       >
+        <button
+          onClick={onCancel}
+          className="absolute top-4 right-4 p-1 rounded-lg text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
+          aria-label={t('common.close')}
+        >
+          <X size={18} />
+        </button>
         <h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200 mb-4">
           {t('common.edit')}
         </h2>
@@ -64,8 +72,9 @@ export default function EditModal({ open, initialText, onSave, onCancel }) {
           <button
             onClick={handleSave}
             disabled={!text.trim()}
-            className="px-4 py-2 text-sm rounded-lg bg-indigo-600 text-white disabled:opacity-40 hover:bg-indigo-700 transition-colors"
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-indigo-600 text-white disabled:opacity-40 hover:bg-indigo-700 transition-colors"
           >
+            <Check size={14} />
             {t('common.save')}
           </button>
         </div>

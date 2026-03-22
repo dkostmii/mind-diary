@@ -72,6 +72,8 @@ export default {
     back: 'Назад',
     delete: 'Видалити',
     edit: 'Редагувати',
+    viewMedia: 'Переглянути медіа',
+    close: 'Закрити',
     confirmDelete: 'Точно видалити?',
     deleteConfirmMessage: 'Цю дію неможливо скасувати.',
   },

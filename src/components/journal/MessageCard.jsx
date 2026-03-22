@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { format, isToday, isYesterday } from 'date-fns';
 import { uk } from 'date-fns/locale';
+import { Pencil, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../i18n';
 import ConfirmModal from '../shared/ConfirmModal';
 import EditModal from '../shared/EditModal';
@@ -29,16 +30,18 @@ export default function MessageCard({ message, onDelete, onEdit }) {
         <div className="flex gap-1">
           <button
             onClick={() => setEditing(true)}
-            className="px-3 py-1.5 text-sm rounded-lg text-stone-500 hover:text-indigo-600 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg text-stone-500 hover:text-indigo-600 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
             aria-label={t('common.edit')}
           >
+            <Pencil size={14} />
             {t('common.edit')}
           </button>
           <button
             onClick={() => setConfirming(true)}
-            className="px-3 py-1.5 text-sm rounded-lg text-stone-500 hover:text-red-600 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg text-stone-500 hover:text-red-600 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
             aria-label={t('common.delete')}
           >
+            <Trash2 size={14} />
             {t('common.delete')}
           </button>
         </div>

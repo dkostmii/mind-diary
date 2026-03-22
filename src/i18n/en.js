@@ -72,6 +72,8 @@ export default {
     back: 'Back',
     delete: 'Delete',
     edit: 'Edit',
+    viewMedia: 'View media',
+    close: 'Close',
     confirmDelete: 'Are you sure?',
     deleteConfirmMessage: 'This action cannot be undone.',
   },

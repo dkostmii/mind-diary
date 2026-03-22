@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
 import { Virtuoso } from 'react-virtuoso';
+import { Pencil, Trash2, MessageCircle } from 'lucide-react';
 import { useTranslation } from '../../i18n';
 import ReflectionBadge from '../reflect/ReflectionBadge';
 import ConfirmModal from '../shared/ConfirmModal';
@@ -58,8 +59,9 @@ export default function RecallFeed({
               ) : (
                 <button
                   onClick={(e) => { e.stopPropagation(); onReflect(msg.id); }}
-                  className="shrink-0 px-3 py-1.5 text-sm rounded-lg text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
+                  className="inline-flex items-center gap-1 shrink-0 px-3 py-1.5 text-sm rounded-lg text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
                 >
+                  <MessageCircle size={14} />
                   {t('nav.reflect')}
                 </button>
               )}
@@ -69,14 +71,16 @@ export default function RecallFeed({
             <div className="flex gap-1 mt-2" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={(e) => { e.stopPropagation(); setEditingMsg(msg.id); }}
-                className="px-3 py-1.5 text-sm rounded-lg text-stone-500 hover:text-indigo-600 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg text-stone-500 hover:text-indigo-600 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
               >
+                <Pencil size={14} />
                 {t('common.edit')}
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); setConfirmingMsg(msg.id); }}
-                className="px-3 py-1.5 text-sm rounded-lg text-stone-500 hover:text-red-600 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg text-stone-500 hover:text-red-600 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
               >
+                <Trash2 size={14} />
                 {t('common.delete')}
               </button>
             </div>
@@ -96,14 +100,16 @@ export default function RecallFeed({
                 <div className="flex gap-1 mt-2" onClick={(e) => e.stopPropagation()}>
                   <button
                     onClick={(e) => { e.stopPropagation(); setEditingRef(msg.id); }}
-                    className="px-3 py-1.5 text-sm rounded-lg text-stone-500 hover:text-indigo-600 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg text-stone-500 hover:text-indigo-600 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
                   >
+                    <Pencil size={14} />
                     {t('common.edit')}
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); setConfirmingRef(msg.id); }}
-                    className="px-3 py-1.5 text-sm rounded-lg text-stone-500 hover:text-red-600 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg text-stone-500 hover:text-red-600 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
                   >
+                    <Trash2 size={14} />
                     {t('common.delete')}
                   </button>
                 </div>

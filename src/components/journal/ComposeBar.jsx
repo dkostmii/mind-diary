@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
+import { PenLine } from 'lucide-react';
 import { useTranslation } from '../../i18n';
 
 export default function ComposeBar({ onSend }) {
@@ -46,9 +47,10 @@ export default function ComposeBar({ onSend }) {
         <button
           onClick={handleSend}
           disabled={!text.trim()}
-          className="rounded-xl bg-indigo-600 px-4 py-2.5 text-white font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-indigo-700 active:bg-indigo-800 transition-colors"
+          className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2.5 text-white font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-indigo-700 active:bg-indigo-800 transition-colors"
           aria-label={t('journal.send')}
         >
+          <PenLine size={16} />
           {t('journal.send')}
         </button>
       </div>
