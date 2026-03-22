@@ -60,9 +60,9 @@ export default {
   },
   help: {
     title: 'How Mind Diary works',
-    journal: 'This is where it all begins. A thought crosses your mind — write it down. No rules, no structure, just you and your words.',
-    reflect: 'Time passes, and your old entries resurface here. Read what you once wrote and reply — sometimes you will surprise yourself.',
-    recall: 'Everything you have written lives here. Scroll through your journey, revisit old reflections, or find that one thought you almost forgot.',
+    journal: 'This is where it all begins. A thought crosses your mind — write it down. Attach photos to capture the moment, drop a pin to remember where you were, or paste a link to music that set the mood. No rules, no structure, just you and your words.',
+    reflect: 'Time passes, and your old entries resurface here. Read what you once wrote and reply — with words, photos, or a place that matters now. Sometimes you will surprise yourself.',
+    recall: 'Everything you have written lives here. Scroll through your journey, revisit old reflections, or find that one thought you almost forgot. Shared links to YouTube, Spotify, SoundCloud, and Apple Music come alive as embedded players.',
     settings: 'Make the app yours — your name, your language, or a full export of your story. Your data never leaves your device.',
   },
   common: {
