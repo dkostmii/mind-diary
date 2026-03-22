@@ -23,15 +23,6 @@ export default function HelpModal({ open, onClose }) {
     return () => document.removeEventListener('keydown', handleKey);
   }, [open, onClose]);
 
-  useEffect(() => {
-    if (!open) return;
-    const root = document.getElementById('root');
-    if (root) root.setAttribute('inert', '');
-    return () => {
-      if (root) root.removeAttribute('inert');
-    };
-  }, [open]);
-
   if (!open) return null;
 
   return (

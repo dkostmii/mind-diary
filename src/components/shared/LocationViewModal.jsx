@@ -63,19 +63,10 @@ export default function LocationViewModal({ location, open, onClose }) {
     return () => document.removeEventListener('keydown', handleKey);
   }, [open, onClose]);
 
-  useEffect(() => {
-    if (!open) return;
-    const root = document.getElementById('root');
-    if (root) root.setAttribute('inert', '');
-    return () => {
-      if (root) root.removeAttribute('inert');
-    };
-  }, [open]);
-
-  if (!open || !location) return null;
-
   const backdropRef = useRef(null);
   const pointerDownTarget = useRef(null);
+
+  if (!open || !location) return null;
 
   return (
     <div
