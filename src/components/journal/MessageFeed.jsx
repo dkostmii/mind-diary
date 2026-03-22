@@ -1,24 +1,35 @@
-import { useEffect, useRef } from 'react';
+import { useRef, useCallback } from 'react';
+import { Virtuoso } from 'react-virtuoso';
 import MessageCard from './MessageCard';
 import EmptyState from './EmptyState';
 
 export default function MessageFeed({ messages, onDelete, onEdit }) {
-  const bottomRef = useRef(null);
+  const virtuosoRef = useRef(null);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages.length]);
+  const itemContent = useCallback(
+    (index) => {
+      const msg = messages[index];
+      return (
+        <div className="px-4">
+          <MessageCard message={msg} onDelete={onDelete} onEdit={onEdit} />
+        </div>
+      );
+    },
+    [messages, onDelete, onEdit]
+  );
 
   if (messages.length === 0) {
     return <EmptyState />;
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-2 min-h-0">
-      {messages.map((msg) => (
-        <MessageCard key={msg.id} message={msg} onDelete={onDelete} onEdit={onEdit} />
-      ))}
-      <div ref={bottomRef} />
-    </div>
+    <Virtuoso
+      ref={virtuosoRef}
+      className="flex-1 min-h-0"
+      totalCount={messages.length}
+      itemContent={itemContent}
+      followOutput="smooth"
+      initialTopMostItemIndex={messages.length - 1}
+    />
   );
 }

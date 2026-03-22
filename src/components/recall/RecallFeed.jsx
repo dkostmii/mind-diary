@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
+import { Virtuoso } from 'react-virtuoso';
 import { useTranslation } from '../../i18n';
 import ReflectionBadge from '../reflect/ReflectionBadge';
 import ConfirmModal from '../shared/ConfirmModal';
@@ -26,13 +27,13 @@ export default function RecallFeed({
   const editingMsgData = editingMsg && messages.find((m) => m.id === editingMsg);
   const editingRefData = editingRef && messages.find((m) => m.id === editingRef);
 
-  return (
-    <div className="px-4 py-2 space-y-3">
-      {messages.map((msg) => {
-        const dateStr = format(new Date(msg.createdAt), 'd MMM yyyy HH:mm', locale);
-        return (
+  const itemContent = useCallback(
+    (index) => {
+      const msg = messages[index];
+      const dateStr = format(new Date(msg.createdAt), 'd MMM yyyy HH:mm', locale);
+      return (
+        <div className="px-4 py-1.5">
           <div
-            key={msg.id}
             className={`rounded-xl border p-4 transition-colors ${
               msg.reflection
                 ? 'border-stone-200 dark:border-stone-700'
@@ -109,8 +110,19 @@ export default function RecallFeed({
               </div>
             )}
           </div>
-        );
-      })}
+        </div>
+      );
+    },
+    [messages, userName, locale, t, onReflect]
+  );
+
+  return (
+    <>
+      <Virtuoso
+        className="flex-1 min-h-0"
+        totalCount={messages.length}
+        itemContent={itemContent}
+      />
 
       <EditModal
         open={editingMsg !== null}
@@ -134,6 +146,6 @@ export default function RecallFeed({
         onConfirm={() => { onDeleteReflection(confirmingRef); setConfirmingRef(null); }}
         onCancel={() => setConfirmingRef(null)}
       />
-    </div>
+    </>
   );
 }

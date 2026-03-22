@@ -296,7 +296,7 @@ function downloadFile(content, filename, mimeType) {
 
 ## Key implementation rules
 
-1. **Zero network calls.** No analytics, no telemetry, no API calls. Everything is localStorage + IndexedDB.
+1. **No user data leaves the device.** No analytics, no telemetry, no server-side storage. Everything is localStorage + IndexedDB. Network calls are allowed only for resolving/embedding media URLs (e.g., SoundCloud oEmbed) — no user data is sent.
 2. **No bot, no scripted messages, no AI.** The app never generates text. All text on screen is either user-written or a static UI string from the translation file.
 3. **Multiple messages per day.** This is a message feed, not a one-entry-per-day journal. Messages are timestamped to the minute.
 4. **Ukrainian-first.** All default text is Ukrainian. Every user-facing string uses `t()` from the i18n system. No hardcoded strings in components.

@@ -62,8 +62,7 @@ export default function Recall() {
           </p>
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto min-h-0">
-          <RecallFeed
+        <RecallFeed
             messages={filtered}
             userName={name}
             onReflect={handleReflect}
@@ -72,7 +71,6 @@ export default function Recall() {
             onDeleteReflection={removeReflection}
             onEditReflection={editReflection}
           />
-        </div>
       )}
       <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
     </div>
