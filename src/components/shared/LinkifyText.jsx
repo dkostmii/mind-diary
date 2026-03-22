@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useTranslation } from '../../i18n';
+import ImageGallery from './ImageGallery';
 
 const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
 
@@ -66,6 +67,16 @@ function isShortSoundCloudUrl(url) {
 
 function isMediaUrl(url) {
   return !!(getYouTubeId(url) || getSpotifyEmbed(url) || getAppleMusicEmbed(url) || isSoundCloudUrl(url));
+}
+
+const IMAGE_EXT_REGEX = /\.(jpe?g|png|gif|webp|svg|bmp|ico|avif)(\?.*)?$/i;
+
+function isImageUrl(url) {
+  try {
+    const u = new URL(url);
+    return IMAGE_EXT_REGEX.test(u.pathname);
+  } catch {}
+  return false;
 }
 
 function getMediaLabel(url) {
@@ -251,6 +262,29 @@ function MediaModal({ url, onClose }) {
   );
 }
 
+function ImageLink({ url }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="inline-block rounded-lg overflow-hidden border border-stone-200 dark:border-stone-700 hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors my-1"
+      >
+        <img src={url} alt="" className="max-w-full max-h-64 object-contain" loading="lazy" />
+      </button>
+      {open && (
+        <ImageGallery
+          images={[url]}
+          initialIndex={0}
+          open
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
+  );
+}
+
 function MediaLink({ url }) {
   const [open, setOpen] = useState(false);
 
@@ -278,6 +312,10 @@ export default function LinkifyText({ children }) {
 
     if (isMediaUrl(part)) {
       return <MediaLink key={i} url={part} />;
+    }
+
+    if (isImageUrl(part)) {
+      return <ImageLink key={i} url={part} />;
     }
 
     return (

@@ -8,6 +8,7 @@ import ReflectionBadge from '../reflect/ReflectionBadge';
 import ConfirmModal from '../shared/ConfirmModal';
 import EditModal from '../shared/EditModal';
 import LinkifyText from '../shared/LinkifyText';
+import ImageThumbnails from '../shared/ImageThumbnails';
 
 export default function RecallFeed({
   messages,
@@ -50,6 +51,7 @@ export default function RecallFeed({
                 <p className="text-stone-800 dark:text-stone-200 whitespace-pre-wrap break-words">
                   <LinkifyText>{msg.text}</LinkifyText>
                 </p>
+                <ImageThumbnails images={msg.images} />
               </div>
               {msg.reflection ? (
                 <span className="flex items-center gap-1.5 shrink-0">
@@ -62,7 +64,7 @@ export default function RecallFeed({
                   className="inline-flex items-center gap-1 shrink-0 px-3 py-1.5 text-sm rounded-lg text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
                 >
                   <MessageCircle size={14} />
-                  {t('nav.reflect')}
+                  {t('reflect.action')}
                 </button>
               )}
             </div>
@@ -95,6 +97,7 @@ export default function RecallFeed({
                 <p className="text-stone-700 dark:text-stone-300 whitespace-pre-wrap break-words">
                   <LinkifyText>{msg.reflection.text}</LinkifyText>
                 </p>
+                <ImageThumbnails images={msg.reflection.images} />
 
                 {/* Reflection actions */}
                 <div className="flex gap-1 mt-2" onClick={(e) => e.stopPropagation()}>
@@ -133,13 +136,15 @@ export default function RecallFeed({
       <EditModal
         open={editingMsg !== null}
         initialText={editingMsgData?.text || ''}
-        onSave={(text) => { onEditMessage(editingMsg, text); setEditingMsg(null); }}
+        initialImages={editingMsgData?.images}
+        onSave={(text, images) => { onEditMessage(editingMsg, text, images); setEditingMsg(null); }}
         onCancel={() => setEditingMsg(null)}
       />
       <EditModal
         open={editingRef !== null}
         initialText={editingRefData?.reflection?.text || ''}
-        onSave={(text) => { onEditReflection(editingRef, text); setEditingRef(null); }}
+        initialImages={editingRefData?.reflection?.images}
+        onSave={(text, images) => { onEditReflection(editingRef, text, images); setEditingRef(null); }}
         onCancel={() => setEditingRef(null)}
       />
       <ConfirmModal

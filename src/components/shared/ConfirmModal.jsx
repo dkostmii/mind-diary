@@ -45,17 +45,17 @@ export default function ConfirmModal({ open, onConfirm, onCancel }) {
         <p className="text-sm text-stone-500 dark:text-stone-400 mb-6">
           {t('common.deleteConfirmMessage')}
         </p>
-        <div className="flex gap-3 justify-end">
+        <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
           <button
             ref={cancelRef}
             onClick={onCancel}
-            className="px-4 py-2 text-sm rounded-lg bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-300 dark:hover:bg-stone-600 transition-colors"
+            className="w-full sm:w-auto px-4 py-2 text-sm rounded-lg bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-300 dark:hover:bg-stone-600 transition-colors"
           >
             {t('common.cancel')}
           </button>
           <button
             onClick={onConfirm}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
           >
             <Trash2 size={14} />
             {t('common.delete')}

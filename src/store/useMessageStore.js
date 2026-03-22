@@ -12,13 +12,14 @@ const useMessageStore = create((set, get) => ({
     set({ messages, loaded: true });
   },
 
-  addMessage: async (text) => {
+  addMessage: async (text, images = []) => {
     const now = Date.now();
     const message = {
       id: typeof crypto.randomUUID === 'function'
         ? crypto.randomUUID()
         : `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
       text,
+      images,
       createdAt: now,
       date: format(new Date(now), 'yyyy-MM-dd'),
       reflection: null,
@@ -28,7 +29,7 @@ const useMessageStore = create((set, get) => ({
     return message;
   },
 
-  addReflection: async (messageId, reflectionText) => {
+  addReflection: async (messageId, reflectionText, images = []) => {
     const messages = get().messages;
     const message = messages.find((m) => m.id === messageId);
     if (!message) return;
@@ -37,6 +38,7 @@ const useMessageStore = create((set, get) => ({
       ...message,
       reflection: {
         text: reflectionText,
+        images,
         createdAt: Date.now(),
       },
     };
@@ -51,26 +53,26 @@ const useMessageStore = create((set, get) => ({
     set({ messages: get().messages.filter((m) => m.id !== messageId) });
   },
 
-  editMessage: async (messageId, newText) => {
+  editMessage: async (messageId, newText, newImages) => {
     const messages = get().messages;
     const message = messages.find((m) => m.id === messageId);
     if (!message) return;
 
-    const updated = { ...message, text: newText };
+    const updated = { ...message, text: newText, images: newImages ?? message.images ?? [] };
     await saveMessage(updated);
     set({
       messages: messages.map((m) => (m.id === messageId ? updated : m)),
     });
   },
 
-  editReflection: async (messageId, newText) => {
+  editReflection: async (messageId, newText, newImages) => {
     const messages = get().messages;
     const message = messages.find((m) => m.id === messageId);
     if (!message?.reflection) return;
 
     const updated = {
       ...message,
-      reflection: { ...message.reflection, text: newText },
+      reflection: { ...message.reflection, text: newText, images: newImages ?? message.reflection.images ?? [] },
     };
     await saveMessage(updated);
     set({

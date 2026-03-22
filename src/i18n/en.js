@@ -19,6 +19,7 @@ export default {
     prompt: 'What would you say?',
     placeholder: 'Reply to yourself...',
     emptyState: 'Your reflections will appear here. Start by writing something in the 📝 Journal.',
+    action: 'Reflect',
     originalDate: 'You wrote on {date}',
   },
   recall: {
@@ -72,6 +73,9 @@ export default {
     back: 'Back',
     delete: 'Delete',
     edit: 'Edit',
+    attachPhoto: 'Add photo',
+    maxPhotos: '10 photos max',
+    maxPhotosReached: 'Max photos',
     viewMedia: 'View media',
     close: 'Close',
     confirmDelete: 'Are you sure?',

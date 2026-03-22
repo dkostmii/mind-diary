@@ -6,6 +6,7 @@ import { useTranslation } from '../../i18n';
 import ConfirmModal from '../shared/ConfirmModal';
 import EditModal from '../shared/EditModal';
 import LinkifyText from '../shared/LinkifyText';
+import ImageThumbnails from '../shared/ImageThumbnails';
 
 export default function MessageCard({ message, onDelete, onEdit }) {
   const { t, lang } = useTranslation();
@@ -50,11 +51,13 @@ export default function MessageCard({ message, onDelete, onEdit }) {
       <p className="text-stone-800 dark:text-stone-200 whitespace-pre-wrap break-words">
         <LinkifyText>{message.text}</LinkifyText>
       </p>
+      <ImageThumbnails images={message.images} />
 
       <EditModal
         open={editing}
         initialText={message.text}
-        onSave={(text) => { onEdit(message.id, text); setEditing(false); }}
+        initialImages={message.images}
+        onSave={(text, images) => { onEdit(message.id, text, images); setEditing(false); }}
         onCancel={() => setEditing(false)}
       />
       <ConfirmModal

@@ -19,6 +19,7 @@ export default {
     prompt: 'Що ти скажеш?',
     placeholder: 'Відповідь собі...',
     emptyState: 'Твої рефлексії зʼявляться тут. Почни з нового запису у 📝 Щоденнику.',
+    action: 'Відрефлексувати',
     originalDate: 'Ти написав(ла) {date}',
   },
   recall: {
@@ -72,6 +73,9 @@ export default {
     back: 'Назад',
     delete: 'Видалити',
     edit: 'Редагувати',
+    attachPhoto: 'Додати фото',
+    maxPhotos: 'Максимум 10 фото',
+    maxPhotosReached: 'Максимум фото',
     viewMedia: 'Переглянути медіа',
     close: 'Закрити',
     confirmDelete: 'Точно видалити?',
