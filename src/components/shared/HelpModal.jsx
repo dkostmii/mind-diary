@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { X } from 'lucide-react';
 import { useTranslation } from '../../i18n';
 
 const sections = [
@@ -10,6 +11,8 @@ const sections = [
 
 export default function HelpModal({ open, onClose }) {
   const { t } = useTranslation();
+  const backdropRef = useRef(null);
+  const pointerDownTarget = useRef(null);
 
   useEffect(() => {
     if (!open) return;
@@ -20,21 +23,43 @@ export default function HelpModal({ open, onClose }) {
     return () => document.removeEventListener('keydown', handleKey);
   }, [open, onClose]);
 
+  useEffect(() => {
+    if (!open) return;
+    const root = document.getElementById('root');
+    if (root) root.setAttribute('inert', '');
+    return () => {
+      if (root) root.removeAttribute('inert');
+    };
+  }, [open]);
+
   if (!open) return null;
 
   return (
     <div
+      ref={backdropRef}
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40"
-      onClick={onClose}
+      onPointerDown={(e) => { pointerDownTarget.current = e.target; }}
+      onClick={(e) => {
+        if (e.target === backdropRef.current && pointerDownTarget.current === backdropRef.current) onClose();
+        pointerDownTarget.current = null;
+      }}
     >
       <div
-        className="bg-white dark:bg-stone-800 rounded-2xl shadow-xl mx-4 w-full max-w-sm max-h-[80vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
+        className="bg-white dark:bg-stone-800 rounded-2xl shadow-xl mx-4 w-full max-w-sm max-h-[80vh] flex flex-col relative"
       >
-        <h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200 px-6 pt-6 pb-4">
-          {t('help.title')}
-        </h2>
-        <div className="overflow-y-auto px-6 space-y-4">
+        <div className="flex items-center justify-between px-6 pt-6 pb-4">
+          <h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">
+            {t('help.title')}
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-1 rounded-lg text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
+            aria-label={t('common.close')}
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <div className="overflow-y-auto px-6 pb-6 space-y-4">
           {sections.map(({ emoji, nameKey, descKey }) => (
             <div key={nameKey}>
               <h3 className="font-medium text-stone-800 dark:text-stone-200 mb-1">
@@ -45,14 +70,6 @@ export default function HelpModal({ open, onClose }) {
               </p>
             </div>
           ))}
-        </div>
-        <div className="flex justify-end px-6 pt-4 pb-6">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm rounded-lg bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-300 dark:hover:bg-stone-600 transition-colors"
-          >
-            {t('common.done')}
-          </button>
         </div>
       </div>
     </div>
