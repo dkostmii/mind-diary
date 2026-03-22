@@ -4,6 +4,7 @@ import { uk } from 'date-fns/locale';
 import { useTranslation } from '../../i18n';
 import ConfirmModal from '../shared/ConfirmModal';
 import EditModal from '../shared/EditModal';
+import LinkifyText from '../shared/LinkifyText';
 
 export default function MessageCard({ message, onDelete, onEdit }) {
   const { t, lang } = useTranslation();
@@ -44,7 +45,7 @@ export default function MessageCard({ message, onDelete, onEdit }) {
       </div>
 
       <p className="text-stone-800 dark:text-stone-200 whitespace-pre-wrap break-words">
-        {message.text}
+        <LinkifyText>{message.text}</LinkifyText>
       </p>
 
       <EditModal

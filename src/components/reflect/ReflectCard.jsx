@@ -1,6 +1,7 @@
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
 import { useTranslation } from '../../i18n';
+import LinkifyText from '../shared/LinkifyText';
 
 export default function ReflectCard({ message }) {
   const { t, lang } = useTranslation();
@@ -14,7 +15,7 @@ export default function ReflectCard({ message }) {
           {t('reflect.originalDate', { date: dateStr })}
         </p>
         <p className="text-stone-800 dark:text-stone-200 whitespace-pre-wrap break-words">
-          {message.text}
+          <LinkifyText>{message.text}</LinkifyText>
         </p>
       </div>
     </div>

@@ -5,6 +5,7 @@ import { useTranslation } from '../../i18n';
 import ReflectionBadge from '../reflect/ReflectionBadge';
 import ConfirmModal from '../shared/ConfirmModal';
 import EditModal from '../shared/EditModal';
+import LinkifyText from '../shared/LinkifyText';
 
 export default function RecallFeed({
   messages,
@@ -45,7 +46,7 @@ export default function RecallFeed({
                   {t('recall.authorWrites', { name: userName })} — {dateStr}
                 </p>
                 <p className="text-stone-800 dark:text-stone-200 whitespace-pre-wrap break-words">
-                  {msg.text}
+                  <LinkifyText>{msg.text}</LinkifyText>
                 </p>
               </div>
               {msg.reflection ? (
@@ -87,7 +88,7 @@ export default function RecallFeed({
                   {format(new Date(msg.reflection.createdAt), 'd MMM yyyy HH:mm', locale)}
                 </p>
                 <p className="text-stone-700 dark:text-stone-300 whitespace-pre-wrap break-words">
-                  {msg.reflection.text}
+                  <LinkifyText>{msg.reflection.text}</LinkifyText>
                 </p>
 
                 {/* Reflection actions */}
