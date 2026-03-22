@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { Maximize2 } from 'lucide-react';
 import { ImagePreview, ImageAttachButton, resizeImage } from './ImagePicker';
+import LocationAttachButton from './LocationAttachButton';
 import FullscreenComposerModal from './FullscreenComposerModal';
 
 const MAX_IMAGES = 10;
@@ -8,6 +9,7 @@ const MAX_IMAGES = 10;
 export default function Composer({ placeholder, buttonLabel, buttonIcon: Icon, onSubmit }) {
   const [text, setText] = useState('');
   const [images, setImages] = useState([]);
+  const [location, setLocation] = useState(null);
   const [fullscreen, setFullscreen] = useState(false);
   const textareaRef = useRef(null);
 
@@ -21,14 +23,15 @@ export default function Composer({ placeholder, buttonLabel, buttonIcon: Icon, o
   const handleSend = useCallback(() => {
     const trimmed = text.trim();
     if (!trimmed && !images.length) return;
-    onSubmit(trimmed, images);
+    onSubmit(trimmed, images, location);
     setText('');
     setImages([]);
+    setLocation(null);
     setFullscreen(false);
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
-  }, [text, images, onSubmit]);
+  }, [text, images, location, onSubmit]);
 
   const handleKeyDown = (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -58,6 +61,11 @@ export default function Composer({ placeholder, buttonLabel, buttonIcon: Icon, o
       <div className="shrink-0 border-t border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 px-4 py-3">
         <div className="max-w-lg mx-auto">
           <ImagePreview images={images} onChange={setImages} />
+          {location && (
+            <div className="mb-2">
+              <LocationAttachButton location={location} onChange={setLocation} />
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <div
               className="flex-1 flex items-center rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent overflow-hidden"
@@ -83,6 +91,7 @@ export default function Composer({ placeholder, buttonLabel, buttonIcon: Icon, o
                 <Maximize2 size={16} />
               </button>
               <ImageAttachButton images={images} onChange={setImages} />
+              {!location && <LocationAttachButton location={null} onChange={setLocation} />}
             </div>
             <button
               onClick={handleSend}
@@ -99,8 +108,10 @@ export default function Composer({ placeholder, buttonLabel, buttonIcon: Icon, o
         open={fullscreen}
         text={text}
         images={images}
+        location={location}
         onChangeText={setText}
         onChangeImages={setImages}
+        onChangeLocation={setLocation}
         onSave={handleSend}
         onClose={() => setFullscreen(false)}
         placeholder={placeholder}

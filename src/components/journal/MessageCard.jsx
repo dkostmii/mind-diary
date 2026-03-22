@@ -7,6 +7,7 @@ import ConfirmModal from '../shared/ConfirmModal';
 import EditModal from '../shared/EditModal';
 import LinkifyText from '../shared/LinkifyText';
 import ImageThumbnails from '../shared/ImageThumbnails';
+import LocationButton from '../shared/LocationButton';
 
 export default function MessageCard({ message, onDelete, onEdit }) {
   const { t, lang } = useTranslation();
@@ -52,12 +53,14 @@ export default function MessageCard({ message, onDelete, onEdit }) {
         <LinkifyText>{message.text}</LinkifyText>
       </p>
       <ImageThumbnails images={message.images} />
+      <LocationButton location={message.location} />
 
       <EditModal
         open={editing}
         initialText={message.text}
         initialImages={message.images}
-        onSave={(text, images) => { onEdit(message.id, text, images); setEditing(false); }}
+        initialLocation={message.location}
+        onSave={(text, images, location) => { onEdit(message.id, text, images, location); setEditing(false); }}
         onCancel={() => setEditing(false)}
       />
       <ConfirmModal

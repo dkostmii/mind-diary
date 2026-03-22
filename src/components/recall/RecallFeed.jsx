@@ -9,6 +9,7 @@ import ConfirmModal from '../shared/ConfirmModal';
 import EditModal from '../shared/EditModal';
 import LinkifyText from '../shared/LinkifyText';
 import ImageThumbnails from '../shared/ImageThumbnails';
+import LocationButton from '../shared/LocationButton';
 
 export default function RecallFeed({
   messages,
@@ -52,6 +53,7 @@ export default function RecallFeed({
                   <LinkifyText>{msg.text}</LinkifyText>
                 </p>
                 <ImageThumbnails images={msg.images} />
+                <LocationButton location={msg.location} />
               </div>
               {msg.reflection ? (
                 <span className="flex items-center gap-1.5 shrink-0">
@@ -98,6 +100,7 @@ export default function RecallFeed({
                   <LinkifyText>{msg.reflection.text}</LinkifyText>
                 </p>
                 <ImageThumbnails images={msg.reflection.images} />
+                <LocationButton location={msg.reflection.location} />
 
                 {/* Reflection actions */}
                 <div className="flex gap-1 mt-2" onClick={(e) => e.stopPropagation()}>
@@ -137,14 +140,16 @@ export default function RecallFeed({
         open={editingMsg !== null}
         initialText={editingMsgData?.text || ''}
         initialImages={editingMsgData?.images}
-        onSave={(text, images) => { onEditMessage(editingMsg, text, images); setEditingMsg(null); }}
+        initialLocation={editingMsgData?.location}
+        onSave={(text, images, location) => { onEditMessage(editingMsg, text, images, location); setEditingMsg(null); }}
         onCancel={() => setEditingMsg(null)}
       />
       <EditModal
         open={editingRef !== null}
         initialText={editingRefData?.reflection?.text || ''}
         initialImages={editingRefData?.reflection?.images}
-        onSave={(text, images) => { onEditReflection(editingRef, text, images); setEditingRef(null); }}
+        initialLocation={editingRefData?.reflection?.location}
+        onSave={(text, images, location) => { onEditReflection(editingRef, text, images, location); setEditingRef(null); }}
         onCancel={() => setEditingRef(null)}
       />
       <ConfirmModal

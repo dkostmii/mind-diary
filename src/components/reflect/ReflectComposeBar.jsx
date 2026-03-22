@@ -7,7 +7,7 @@ export default function ReflectComposeBar({ messageId, onReflect }) {
   const { t } = useTranslation();
 
   const handleSubmit = useCallback(
-    (text, images) => onReflect(messageId, text, images),
+    (text, images, location) => onReflect(messageId, text, images, location),
     [messageId, onReflect]
   );
 

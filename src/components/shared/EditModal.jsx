@@ -2,22 +2,25 @@ import { useEffect, useState, useCallback } from 'react';
 import { X, Check, Maximize2, Minimize2 } from 'lucide-react';
 import { useTranslation } from '../../i18n';
 import { ImagePreview, ImageAttachButton, resizeImage } from './ImagePicker';
+import LocationAttachButton from './LocationAttachButton';
 
 const MAX_IMAGES = 10;
 
-export default function EditModal({ open, initialText, initialImages, onSave, onCancel }) {
+export default function EditModal({ open, initialText, initialImages, initialLocation, onSave, onCancel }) {
   const { t } = useTranslation();
   const [text, setText] = useState(initialText || '');
   const [images, setImages] = useState(initialImages || []);
+  const [location, setLocation] = useState(initialLocation || null);
   const [fullscreen, setFullscreen] = useState(false);
 
   useEffect(() => {
     if (open) {
       setText(initialText || '');
       setImages(initialImages || []);
+      setLocation(initialLocation || null);
       setFullscreen(false);
     }
-  }, [open, initialText, initialImages]);
+  }, [open, initialText, initialImages, initialLocation]);
 
   useEffect(() => {
     if (!open) return;
@@ -53,8 +56,9 @@ export default function EditModal({ open, initialText, initialImages, onSave, on
     const trimmed = text.trim();
     const textChanged = trimmed !== initialText;
     const imagesChanged = JSON.stringify(images) !== JSON.stringify(initialImages || []);
-    if ((trimmed || images.length) && (textChanged || imagesChanged)) {
-      onSave(trimmed, images);
+    const locationChanged = JSON.stringify(location) !== JSON.stringify(initialLocation || null);
+    if ((trimmed || images.length) && (textChanged || imagesChanged || locationChanged)) {
+      onSave(trimmed, images, location);
     } else {
       onCancel();
     }
@@ -85,6 +89,11 @@ export default function EditModal({ open, initialText, initialImages, onSave, on
         </div>
         <div className="px-4 pt-2">
           <ImagePreview images={images} onChange={setImages} />
+          {location && (
+            <div className="mb-2">
+              <LocationAttachButton location={location} onChange={setLocation} />
+            </div>
+          )}
         </div>
         <textarea
           value={text}
@@ -99,8 +108,9 @@ export default function EditModal({ open, initialText, initialImages, onSave, on
           className="flex-1 resize-none bg-transparent px-4 py-3 text-stone-800 dark:text-stone-200 placeholder:text-stone-400 focus:outline-none text-base"
           autoFocus
         />
-        <div className="px-4 py-3 border-t border-stone-200 dark:border-stone-700">
+        <div className="flex items-center gap-2 px-4 py-3 border-t border-stone-200 dark:border-stone-700">
           <ImageAttachButton images={images} onChange={setImages} label={t('common.attachPhoto')} maxLabel={t('common.maxPhotosReached')} />
+          {!location && <LocationAttachButton location={null} onChange={setLocation} label={t('common.attachLocation')} />}
         </div>
       </div>
     );
@@ -126,6 +136,11 @@ export default function EditModal({ open, initialText, initialImages, onSave, on
           {t('common.edit')}
         </h2>
         <ImagePreview images={images} onChange={setImages} />
+        {location && (
+          <div className="mb-2">
+            <LocationAttachButton location={location} onChange={setLocation} />
+          </div>
+        )}
         <div className="flex-1 min-h-0 flex flex-col rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 focus-within:ring-2 focus-within:ring-indigo-500 overflow-hidden">
           <textarea
             value={text}
@@ -152,7 +167,10 @@ export default function EditModal({ open, initialText, initialImages, onSave, on
           </div>
         </div>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4">
-          <ImageAttachButton images={images} onChange={setImages} label={t('common.attachPhoto')} maxLabel={t('common.maxPhotosReached')} fullWidth />
+          <div className="flex items-center gap-2">
+            <ImageAttachButton images={images} onChange={setImages} label={t('common.attachPhoto')} maxLabel={t('common.maxPhotosReached')} />
+            {!location && <LocationAttachButton location={null} onChange={setLocation} label={t('common.attachLocation')} />}
+          </div>
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
             <button
               onClick={onCancel}

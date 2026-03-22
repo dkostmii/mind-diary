@@ -1,11 +1,12 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
-import { Minimize2, Check, X } from 'lucide-react';
+import { useEffect, useRef, useCallback } from 'react';
+import { Minimize2, Check } from 'lucide-react';
 import { useTranslation } from '../../i18n';
 import { ImagePreview, ImageAttachButton, resizeImage } from './ImagePicker';
+import LocationAttachButton from './LocationAttachButton';
 
 const MAX_IMAGES = 10;
 
-export default function FullscreenComposerModal({ open, text, images, onChangeText, onChangeImages, onSave, onClose, placeholder, saveLabel, saveIcon: SaveIcon }) {
+export default function FullscreenComposerModal({ open, text, images, location, onChangeText, onChangeImages, onChangeLocation, onSave, onClose, placeholder, saveLabel, saveIcon: SaveIcon }) {
   const { t } = useTranslation();
   const textareaRef = useRef(null);
 
@@ -63,6 +64,11 @@ export default function FullscreenComposerModal({ open, text, images, onChangeTe
       </div>
       <div className="px-4 pt-2">
         <ImagePreview images={images} onChange={onChangeImages} />
+        {location && (
+          <div className="mb-2">
+            <LocationAttachButton location={location} onChange={onChangeLocation} />
+          </div>
+        )}
       </div>
       <textarea
         ref={textareaRef}
@@ -78,8 +84,9 @@ export default function FullscreenComposerModal({ open, text, images, onChangeTe
         placeholder={placeholder}
         className="flex-1 resize-none bg-transparent px-4 py-3 text-stone-800 dark:text-stone-200 placeholder:text-stone-400 focus:outline-none text-base"
       />
-      <div className="px-4 py-3 border-t border-stone-200 dark:border-stone-700">
+      <div className="flex items-center gap-2 px-4 py-3 border-t border-stone-200 dark:border-stone-700">
         <ImageAttachButton images={images} onChange={onChangeImages} label={t('common.attachPhoto')} maxLabel={t('common.maxPhotosReached')} />
+        {!location && <LocationAttachButton location={null} onChange={onChangeLocation} label={t('common.attachLocation')} />}
       </div>
     </div>
   );
