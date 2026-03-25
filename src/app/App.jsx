@@ -13,6 +13,7 @@ import useUserStore from "../store/useUserStore";
 import useMessageStore from "../store/useMessageStore";
 import useFragmentStore from "../store/useFragmentStore";
 import useReflectionStore from "../store/useReflectionStore";
+import { extractFragments } from "../engine/fragmentExtractor";
 import routes from "./routes";
 
 function NavBar() {
@@ -95,6 +96,22 @@ export default function App() {
 
   useEffect(() => {
     Promise.all([loadMessages(), loadFragments()])
+      .then(async () => {
+        // Backfill: extract fragments from messages that predate the extraction engine
+        const messages = useMessageStore.getState().messages;
+        const fragments = useFragmentStore.getState().fragments;
+        const messageIdsWithFragments = new Set(
+          fragments.filter((f) => f.sourceMessageId).map((f) => f.sourceMessageId)
+        );
+        for (const msg of messages) {
+          if (!messageIdsWithFragments.has(msg.id)) {
+            const newFrags = extractFragments(msg);
+            if (newFrags.length > 0) {
+              await useFragmentStore.getState().addFragments(newFrags);
+            }
+          }
+        }
+      })
       .then(() => loadReflections())
       .then(() => setReady(true));
   }, [loadMessages, loadFragments, loadReflections]);
