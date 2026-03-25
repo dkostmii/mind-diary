@@ -67,6 +67,9 @@ export default function LocationPicker({ open, onConfirm, onClose, initialLocati
       }
 
       marker.on('dragend', async () => {
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
         const { lng, lat } = marker.getLngLat();
         const place = await reverseGeocode(lng, lat);
         setSelected({ lng, lat, ...place });
@@ -75,6 +78,10 @@ export default function LocationPicker({ open, onConfirm, onClose, initialLocati
       map.on('click', async (e) => {
         const { lng, lat } = e.lngLat;
         marker.setLngLat([lng, lat]).addTo(map);
+        // Blur any focused input (geocoder) to dismiss keyboard on mobile
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
         const place = await reverseGeocode(lng, lat);
         setSelected({ lng, lat, ...place });
       });
@@ -131,6 +138,10 @@ export default function LocationPicker({ open, onConfirm, onClose, initialLocati
   }, [open]);
 
   const handleLocate = async () => {
+    // Dismiss keyboard on mobile before locating
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     setLocating(true);
     try {
       const pos = await getCurrentPosition();

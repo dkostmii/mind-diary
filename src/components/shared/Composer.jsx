@@ -6,7 +6,7 @@ import FullscreenComposerModal from './FullscreenComposerModal';
 
 const MAX_IMAGES = 10;
 
-export default function Composer({ placeholder, buttonLabel, buttonIcon: Icon, onSubmit }) {
+export default function Composer({ placeholder, buttonLabel, buttonIcon: Icon, onSubmit, allowEmpty = false, disabled = false }) {
   const [text, setText] = useState('');
   const [images, setImages] = useState([]);
   const [location, setLocation] = useState(null);
@@ -22,7 +22,8 @@ export default function Composer({ placeholder, buttonLabel, buttonIcon: Icon, o
 
   const handleSend = useCallback(() => {
     const trimmed = text.trim();
-    if (!trimmed && !images.length) return;
+    if (!allowEmpty && !trimmed && !images.length) return;
+    if (disabled) return;
     onSubmit(trimmed, images, location);
     setText('');
     setImages([]);
@@ -31,7 +32,7 @@ export default function Composer({ placeholder, buttonLabel, buttonIcon: Icon, o
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
-  }, [text, images, location, onSubmit]);
+  }, [text, images, location, onSubmit, allowEmpty, disabled]);
 
   const handleKeyDown = (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -95,7 +96,7 @@ export default function Composer({ placeholder, buttonLabel, buttonIcon: Icon, o
             </div>
             <button
               onClick={handleSend}
-              disabled={!text.trim() && !images.length}
+              disabled={disabled || (!allowEmpty && !text.trim() && !images.length)}
               className="rounded-xl bg-indigo-600 p-2.5 text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-indigo-700 active:bg-indigo-800 transition-colors"
               aria-label={buttonLabel}
             >

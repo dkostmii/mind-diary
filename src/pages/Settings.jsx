@@ -2,8 +2,11 @@ import { useState } from 'react';
 import { useTranslation } from '../i18n';
 import useUserStore from '../store/useUserStore';
 import useMessageStore from '../store/useMessageStore';
+import useFragmentStore from '../store/useFragmentStore';
+import useReflectionStore from '../store/useReflectionStore';
 import LanguageSelector from '../components/shared/LanguageSelector';
-import { exportMessages, importMessages } from '../utils/exportData';
+import PoolStats from '../components/pool/PoolStats';
+import { exportAllData, importData } from '../utils/exportData';
 import FixedHeader from '../components/shared/FixedHeader';
 
 export default function Settings() {
@@ -15,6 +18,8 @@ export default function Settings() {
 
   const messages = useMessageStore((s) => s.messages);
   const bulkImport = useMessageStore((s) => s.bulkImport);
+  const fragments = useFragmentStore((s) => s.fragments);
+  const reflections = useReflectionStore((s) => s.reflections);
 
   const [editName, setEditName] = useState(name);
   const [nameSaved, setNameSaved] = useState(false);
@@ -74,6 +79,9 @@ export default function Settings() {
           <LanguageSelector value={language} onChange={setLanguage} />
         </section>
 
+        {/* Pool Stats */}
+        <PoolStats />
+
         {/* Export / Import */}
         <section className="bg-white dark:bg-stone-800 rounded-2xl p-4 shadow-sm space-y-3">
           <p className="text-sm text-stone-500 dark:text-stone-400">
@@ -81,7 +89,7 @@ export default function Settings() {
           </p>
           <div className="flex gap-2">
             <button
-              onClick={() => exportMessages(messages)}
+              onClick={() => exportAllData(messages, fragments, reflections)}
               disabled={messages.length === 0}
               className="flex-1 px-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 text-sm font-medium text-stone-700 dark:text-stone-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors"
             >
@@ -97,8 +105,8 @@ export default function Settings() {
                   const file = e.target.files?.[0];
                   if (!file) return;
                   try {
-                    const parsed = await importMessages(file);
-                    const count = await bulkImport(parsed);
+                    const parsed = await importData(file);
+                    const count = await bulkImport(parsed.messages);
                     setImportStatus({ ok: true, count });
                   } catch {
                     setImportStatus({ ok: false });
