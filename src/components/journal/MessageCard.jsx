@@ -5,11 +5,13 @@ import { useTranslation } from '../../i18n';
 import LinkifyText from '../shared/LinkifyText';
 import ImageThumbnails from '../shared/ImageThumbnails';
 import LocationButton from '../shared/LocationButton';
+import { getDecayLevel } from '../../engine/decayCalculator';
 
 export default function MessageCard({ message, onEdit, onDelete }) {
   const { t, lang } = useTranslation();
   const date = new Date(message.createdAt);
   const locale = lang === 'uk' ? { locale: uk } : {};
+  const decay = getDecayLevel(message.createdAt, message.pinned);
 
   let dateStr;
   if (isToday(date)) {
@@ -44,11 +46,20 @@ export default function MessageCard({ message, onEdit, onDelete }) {
         </div>
       </div>
 
-      <p className="text-stone-800 dark:text-stone-200 whitespace-pre-wrap break-words">
-        <LinkifyText>{message.text}</LinkifyText>
-      </p>
-      <ImageThumbnails images={message.images} />
-      <LocationButton location={message.location} />
+      <div
+        style={{
+          filter: decay.blur > 0 ? `blur(${decay.blur}px)` : undefined,
+          opacity: decay.opacity,
+          pointerEvents: decay.blur > 0 ? 'none' : undefined,
+          transition: 'filter 0.3s, opacity 0.3s',
+        }}
+      >
+        <p className="text-stone-800 dark:text-stone-200 whitespace-pre-wrap break-words">
+          <LinkifyText>{message.text}</LinkifyText>
+        </p>
+        <ImageThumbnails images={message.images} />
+        <LocationButton location={message.location} />
+      </div>
     </div>
   );
 }

@@ -44,9 +44,5 @@ export function computeWeeklySummary(messages, weekStartDay = 'monday') {
     entriesThisWeek: weekMessages.length,
     streak: calcStreak(messages),
     totalReflections: allReflected.length,
-    reflectionRatio:
-      messages.length > 0
-        ? Math.round((allReflected.length / messages.length) * 100)
-        : 0,
   };
 }

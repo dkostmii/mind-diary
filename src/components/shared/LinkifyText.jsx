@@ -291,7 +291,7 @@ function ImageLink({ url }) {
   );
 }
 
-function MediaLink({ url }) {
+export function MediaLink({ url }) {
   const [open, setOpen] = useState(false);
 
   return (

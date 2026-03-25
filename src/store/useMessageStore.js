@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { format } from 'date-fns';
 import { getAllMessages, saveMessage, deleteMessage } from '../utils/storage';
+import { extractFragments } from '../engine/fragmentExtractor';
+import useFragmentStore from './useFragmentStore';
 
 const useMessageStore = create((set, get) => ({
   messages: [],
@@ -27,6 +29,12 @@ const useMessageStore = create((set, get) => ({
     };
     await saveMessage(message);
     set({ messages: [...get().messages, message] });
+
+    const fragments = extractFragments(message);
+    if (fragments.length > 0) {
+      await useFragmentStore.getState().addFragments(fragments);
+    }
+
     return message;
   },
 
@@ -53,6 +61,9 @@ const useMessageStore = create((set, get) => ({
   removeMessage: async (messageId) => {
     await deleteMessage(messageId);
     set({ messages: get().messages.filter((m) => m.id !== messageId) });
+
+    // Cascade delete fragments for this message
+    await useFragmentStore.getState().removeFragmentsByMessageId(messageId);
   },
 
   editMessage: async (messageId, newText, newImages, newLocation) => {
@@ -91,6 +102,14 @@ const useMessageStore = create((set, get) => ({
     }
     const merged = [...existing, ...toAdd].sort((a, b) => a.createdAt - b.createdAt);
     set({ messages: merged });
+
+    for (const msg of toAdd) {
+      const fragments = extractFragments(msg);
+      if (fragments.length > 0) {
+        await useFragmentStore.getState().addFragments(fragments);
+      }
+    }
+
     return toAdd.length;
   },
 

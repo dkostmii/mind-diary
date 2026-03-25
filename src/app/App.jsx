@@ -11,6 +11,8 @@ import { Analytics } from "@vercel/analytics/react";
 import { LanguageProvider, useTranslation } from "../i18n";
 import useUserStore from "../store/useUserStore";
 import useMessageStore from "../store/useMessageStore";
+import useFragmentStore from "../store/useFragmentStore";
+import useReflectionStore from "../store/useReflectionStore";
 import routes from "./routes";
 
 function NavBar() {
@@ -86,12 +88,16 @@ function AppContent() {
 
 export default function App() {
   const loadMessages = useMessageStore((s) => s.loadMessages);
+  const loadFragments = useFragmentStore((s) => s.loadFragments);
+  const loadReflections = useReflectionStore((s) => s.loadReflections);
   const language = useUserStore((s) => s.language);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    loadMessages().then(() => setReady(true));
-  }, [loadMessages]);
+    Promise.all([loadMessages(), loadFragments(), loadReflections()]).then(() =>
+      setReady(true)
+    );
+  }, [loadMessages, loadFragments, loadReflections]);
 
   if (!ready) {
     return (

@@ -6,6 +6,7 @@ import useUserStore from '../../store/useUserStore';
 const STEPS = {
   LANGUAGE: 0,
   NAME: 1,
+  BLUR_PHILOSOPHY: 2,
 };
 
 export default function OnboardingFlow({ onComplete }) {
@@ -29,6 +30,10 @@ export default function OnboardingFlow({ onComplete }) {
     const trimmed = name.trim();
     if (!trimmed) return;
     setUserName(trimmed);
+    setStep(STEPS.BLUR_PHILOSOPHY);
+  };
+
+  const handleComplete = () => {
     completeOnboarding();
     onComplete();
   };
@@ -75,6 +80,24 @@ export default function OnboardingFlow({ onComplete }) {
               {t('common.done')}
             </button>
           </form>
+        )}
+
+        {step === STEPS.BLUR_PHILOSOPHY && (
+          <div className="space-y-6 text-center">
+            <div className="text-5xl">🌫️</div>
+            <h2 className="text-xl font-semibold text-stone-800 dark:text-stone-200">
+              {t('onboarding.blurTitle')}
+            </h2>
+            <p className="text-stone-500 dark:text-stone-400 leading-relaxed">
+              {t('onboarding.blurDescription')}
+            </p>
+            <button
+              onClick={handleComplete}
+              className="w-full py-3 rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-700 active:bg-indigo-800 transition-colors"
+            >
+              {t('onboarding.blurContinue')}
+            </button>
+          </div>
         )}
       </div>
     </div>

@@ -1,36 +1,27 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useMemo } from 'react';
 import { useTranslation } from '../i18n';
-import useMessageStore from '../store/useMessageStore';
-import useUserStore from '../store/useUserStore';
-import FilterBar from '../components/recall/FilterBar';
+import useFragmentStore from '../store/useFragmentStore';
+import useReflectionStore from '../store/useReflectionStore';
 import RecallFeed from '../components/recall/RecallFeed';
 import HelpModal from '../components/shared/HelpModal';
 import FixedHeader from '../components/shared/FixedHeader';
 
 export default function Recall() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
-  const messages = useMessageStore((s) => s.messages);
-  const removeMessage = useMessageStore((s) => s.removeMessage);
-  const editMessage = useMessageStore((s) => s.editMessage);
-  const removeReflection = useMessageStore((s) => s.removeReflection);
-  const editReflection = useMessageStore((s) => s.editReflection);
-  const name = useUserStore((s) => s.name);
-  const [filter, setFilter] = useState('all');
+  const fragments = useFragmentStore((s) => s.fragments);
+  const reflections = useReflectionStore((s) => s.reflections);
+  const removeReflection = useReflectionStore((s) => s.removeReflection);
   const [helpOpen, setHelpOpen] = useState(false);
 
-  const sorted = [...messages].sort((a, b) => b.createdAt - a.createdAt);
+  const fragmentsById = useMemo(
+    () => new Map(fragments.map((f) => [f.id, f])),
+    [fragments]
+  );
 
-  const filtered = sorted.filter((m) => {
-    if (filter === 'reflected') return m.reflection !== null;
-    if (filter === 'unreflected') return m.reflection === null;
-    return true;
-  });
-
-  const handleReflect = (id) => {
-    navigate(`/reflect?id=${id}`);
-  };
+  const sorted = useMemo(
+    () => [...reflections].sort((a, b) => b.createdAt - a.createdAt),
+    [reflections]
+  );
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -53,9 +44,7 @@ export default function Recall() {
         </button>
       </FixedHeader>
 
-      <FilterBar active={filter} onChange={setFilter} />
-
-      {filtered.length === 0 ? (
+      {sorted.length === 0 ? (
         <div className="flex-1 flex items-center justify-center p-8 min-h-0">
           <p className="text-stone-400 dark:text-stone-500 text-center text-lg">
             {t('recall.emptyState')}
@@ -63,14 +52,10 @@ export default function Recall() {
         </div>
       ) : (
         <RecallFeed
-            messages={filtered}
-            userName={name}
-            onReflect={handleReflect}
-            onDeleteMessage={removeMessage}
-            onEditMessage={editMessage}
-            onDeleteReflection={removeReflection}
-            onEditReflection={editReflection}
-          />
+          reflections={sorted}
+          fragmentsById={fragmentsById}
+          onDelete={removeReflection}
+        />
       )}
       <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
     </div>
