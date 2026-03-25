@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
 import { Trash2 } from 'lucide-react';
 import { useTranslation } from '../../i18n';
+import { getDecayLevel } from '../../engine/decayCalculator';
 import { FragmentContent } from '../reflect/FragmentCard';
 import ConfirmModal from '../shared/ConfirmModal';
 import LinkifyText from '../shared/LinkifyText';
@@ -27,42 +28,56 @@ export default function RecallFeed({ reflections, fragmentsById, onDelete }) {
             const hasReflectionContent =
               reflection.text || reflection.images?.length > 0 || reflection.location;
 
+            const decay = getDecayLevel(reflection.createdAt);
+
             return (
               <div
                 key={reflection.id}
                 className="rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 p-4 shadow-sm flex flex-col"
               >
-                {/* Merged fragment contents */}
-                <div className="space-y-3">
-                  {fragments.map((f) => (
-                    <div key={f.id}>
-                      <FragmentContent fragment={f} t={t} />
+                {/* Blurred content */}
+                <div
+                  style={{
+                    filter: decay.blur > 0 ? `blur(${decay.blur}px)` : undefined,
+                    opacity: decay.opacity,
+                    pointerEvents: decay.blur > 0 ? 'none' : undefined,
+                    transition: 'filter 0.3s, opacity 0.3s',
+                  }}
+                >
+                  {/* Merged fragment contents */}
+                  <div className="space-y-3">
+                    {fragments.map((f) => (
+                      <div key={f.id}>
+                        <FragmentContent fragment={f} t={t} />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Reflection content */}
+                  {hasReflectionContent && (
+                    <div className="mt-3 pt-3 border-t border-stone-100 dark:border-stone-700">
+                      {reflection.text && (
+                        <p className="text-stone-700 dark:text-stone-300 whitespace-pre-wrap break-words mb-2 text-sm">
+                          <LinkifyText>{reflection.text}</LinkifyText>
+                        </p>
+                      )}
+                      <ImageThumbnails images={reflection.images} />
+                      <LocationButton location={reflection.location} />
                     </div>
-                  ))}
+                  )}
                 </div>
 
-                {/* Reflection content */}
-                {hasReflectionContent && (
-                  <div className="mt-3 pt-3 border-t border-stone-100 dark:border-stone-700">
-                    {reflection.text && (
-                      <p className="text-stone-700 dark:text-stone-300 whitespace-pre-wrap break-words mb-2 text-sm">
-                        <LinkifyText>{reflection.text}</LinkifyText>
-                      </p>
-                    )}
-                    <ImageThumbnails images={reflection.images} />
-                    <LocationButton location={reflection.location} />
-                  </div>
-                )}
-
-                {/* Footer */}
+                {/* Footer stays sharp */}
                 <div className="flex items-center justify-between mt-auto pt-3">
                   <p className="text-xs text-stone-400 dark:text-stone-500">{dateStr}</p>
-                  <button
-                    onClick={() => setConfirming(reflection.id)}
-                    className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-lg text-stone-400 hover:text-red-600 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
-                  >
-                    <Trash2 size={13} />
-                  </button>
+                  {decay.blur === 0 && (
+                    <button
+                      onClick={() => setConfirming(reflection.id)}
+                      className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-lg text-stone-400 hover:text-red-600 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  )}
                 </div>
               </div>
             );

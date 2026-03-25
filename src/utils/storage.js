@@ -1,11 +1,11 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'mind-diary';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 function getDB() {
   return openDB(DB_NAME, DB_VERSION, {
-    upgrade(db, oldVersion) {
+    upgrade(db, oldVersion, _newVersion, tx) {
       if (oldVersion < 2) {
         if (db.objectStoreNames.contains('entries')) {
           db.deleteObjectStore('entries');
@@ -21,6 +21,10 @@ function getDB() {
 
         const reflections = db.createObjectStore('reflections', { keyPath: 'id' });
         reflections.createIndex('createdAt', 'createdAt', { unique: false });
+      }
+      if (oldVersion < 4) {
+        const fragments = tx.objectStore('fragments');
+        fragments.createIndex('sourceReflectionId', 'sourceReflectionId', { unique: false });
       }
     },
   });
@@ -56,6 +60,18 @@ export async function deleteFragmentsByMessageId(messageId) {
   const tx = db.transaction('fragments', 'readwrite');
   const index = tx.store.index('sourceMessageId');
   let cursor = await index.openCursor(messageId);
+  while (cursor) {
+    await cursor.delete();
+    cursor = await cursor.continue();
+  }
+  await tx.done;
+}
+
+export async function deleteFragmentsByReflectionId(reflectionId) {
+  const db = await getDB();
+  const tx = db.transaction('fragments', 'readwrite');
+  const index = tx.store.index('sourceReflectionId');
+  let cursor = await index.openCursor(reflectionId);
   while (cursor) {
     await cursor.delete();
     cursor = await cursor.continue();

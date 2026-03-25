@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { getAllFragments, saveFragment, deleteFragmentsByMessageId } from '../utils/storage';
+import { getAllFragments, saveFragment, deleteFragmentsByMessageId, deleteFragmentsByReflectionId } from '../utils/storage';
 
 const useFragmentStore = create((set, get) => ({
   fragments: [],
@@ -21,6 +21,13 @@ const useFragmentStore = create((set, get) => ({
     await deleteFragmentsByMessageId(messageId);
     set({
       fragments: get().fragments.filter((f) => f.sourceMessageId !== messageId),
+    });
+  },
+
+  removeFragmentsByReflectionId: async (reflectionId) => {
+    await deleteFragmentsByReflectionId(reflectionId);
+    set({
+      fragments: get().fragments.filter((f) => f.sourceReflectionId !== reflectionId),
     });
   },
 }));

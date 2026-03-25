@@ -31,46 +31,42 @@ function getMusicLabel(url) {
   return null;
 }
 
-export function extractFragments(message) {
+function extractCommon(text, images, location, sourceKey, sourceId, createdAt) {
   const fragments = [];
-  const text = message.text || '';
-  const urls = text.match(URL_REGEX) || [];
+  const rawText = text || '';
+  const urls = rawText.match(URL_REGEX) || [];
 
   // Text fragments: one per sentence, excluding URL tokens
-  const textWithoutUrls = text.replace(URL_REGEX, '').replace(/\s{2,}/g, ' ').trim();
+  const textWithoutUrls = rawText.replace(URL_REGEX, '').replace(/[^\S\n]{2,}/g, ' ').trim();
   for (const sentence of extractSentences(textWithoutUrls)) {
     fragments.push({
       id: genId(),
       type: 'text',
       content: { excerpt: sentence },
-      sourceMessageId: message.id,
-      createdAt: message.createdAt,
+      [sourceKey]: sourceId,
+      createdAt,
     });
   }
 
   // Photo fragments
-  for (let i = 0; i < (message.images || []).length; i++) {
+  for (let i = 0; i < (images || []).length; i++) {
     fragments.push({
       id: genId(),
       type: 'photo',
-      content: { photoId: `${message.id}-img-${i}`, data: message.images[i] },
-      sourceMessageId: message.id,
-      createdAt: message.createdAt,
+      content: { photoId: `${sourceId}-img-${i}`, data: images[i] },
+      [sourceKey]: sourceId,
+      createdAt,
     });
   }
 
   // Location fragment
-  if (message.location) {
+  if (location) {
     fragments.push({
       id: genId(),
       type: 'location',
-      content: {
-        name: message.location.name,
-        lat: message.location.lat,
-        lng: message.location.lng,
-      },
-      sourceMessageId: message.id,
-      createdAt: message.createdAt,
+      content: { name: location.name, lat: location.lat, lng: location.lng },
+      [sourceKey]: sourceId,
+      createdAt,
     });
   }
 
@@ -84,16 +80,16 @@ export function extractFragments(message) {
         id: genId(),
         type: 'music',
         content: { url, label: musicLabel },
-        sourceMessageId: message.id,
-        createdAt: message.createdAt,
+        [sourceKey]: sourceId,
+        createdAt,
       });
     } else if (ytId) {
       fragments.push({
         id: genId(),
         type: 'video',
         content: { url, label: 'YouTube' },
-        sourceMessageId: message.id,
-        createdAt: message.createdAt,
+        [sourceKey]: sourceId,
+        createdAt,
       });
     }
   }
@@ -101,18 +97,41 @@ export function extractFragments(message) {
   return fragments;
 }
 
+export function extractFragments(message) {
+  return extractCommon(
+    message.text, message.images, message.location,
+    'sourceMessageId', message.id, message.createdAt
+  );
+}
+
+export function extractFragmentsFromReflection(reflection) {
+  return extractCommon(
+    reflection.text, reflection.images, reflection.location,
+    'sourceReflectionId', reflection.id, reflection.createdAt
+  );
+}
+
 function extractSentences(text) {
   if (!text) return [];
-  // Split on sentence-ending punctuation followed by whitespace or end of string
-  const sentences = text
-    .split(/(?<=[.!?])\s+|(?<=[.!?])$/)
-    .map((s) => s.trim())
-    .filter((s) => s.split(/\s+/).filter(Boolean).length >= 1);
 
-  if (sentences.length === 0) {
-    const trimmed = text.trim();
-    if (trimmed.length > 0) return [trimmed.split(/\s+/).slice(0, 12).join(' ')];
-    return [];
+  // First split by newlines into paragraphs
+  const paragraphs = text.split(/\n+/).map((p) => p.trim()).filter(Boolean);
+
+  const sentences = [];
+  for (const para of paragraphs) {
+    // Split each paragraph into sentences by punctuation
+    const parts = para
+      .split(/(?<=[.!?…])\s+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    if (parts.length > 1) {
+      sentences.push(...parts);
+    } else {
+      // No sentence punctuation — keep paragraph as one chunk
+      sentences.push(para);
+    }
   }
-  return sentences;
+
+  return sentences.filter((s) => s.length > 0);
 }

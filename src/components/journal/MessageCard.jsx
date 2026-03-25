@@ -26,24 +26,26 @@ export default function MessageCard({ message, onEdit, onDelete }) {
     <div className="group py-2">
       <div className="flex items-center justify-between mb-1">
         <p className="text-sm text-stone-500 dark:text-stone-400">{dateStr}</p>
-        <div className="flex gap-1">
-          <button
-            onClick={() => onEdit(message.id)}
-            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg text-stone-500 hover:text-indigo-600 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
-            aria-label={t('common.edit')}
-          >
-            <Pencil size={14} />
-            {t('common.edit')}
-          </button>
-          <button
-            onClick={() => onDelete(message.id)}
-            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg text-stone-500 hover:text-red-600 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
-            aria-label={t('common.delete')}
-          >
-            <Trash2 size={14} />
-            {t('common.delete')}
-          </button>
-        </div>
+        {decay.blur === 0 && (
+          <div className="flex gap-1">
+            <button
+              onClick={() => onEdit(message.id)}
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg text-stone-500 hover:text-indigo-600 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+              aria-label={t('common.edit')}
+            >
+              <Pencil size={14} />
+              {t('common.edit')}
+            </button>
+            <button
+              onClick={() => onDelete(message.id)}
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg text-stone-500 hover:text-red-600 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+              aria-label={t('common.delete')}
+            >
+              <Trash2 size={14} />
+              {t('common.delete')}
+            </button>
+          </div>
+        )}
       </div>
 
       <div

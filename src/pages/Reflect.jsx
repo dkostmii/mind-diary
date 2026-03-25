@@ -3,6 +3,7 @@ import { useTranslation } from '../i18n';
 import useFragmentStore from '../store/useFragmentStore';
 import useReflectionStore from '../store/useReflectionStore';
 import { getPoolStats } from '../engine/poolStats';
+import { getDecayLevel } from '../engine/decayCalculator';
 import FragmentCollage from '../components/reflect/FragmentCollage';
 import ReflectCompose from '../components/reflect/ReflectCompose';
 import HelpModal from '../components/shared/HelpModal';
@@ -20,7 +21,11 @@ export default function Reflect() {
   const [helpOpen, setHelpOpen] = useState(false);
 
   const usedFragmentIds = useMemo(
-    () => new Set(reflections.flatMap((r) => r.fragmentIds)),
+    () => new Set(
+      reflections
+        .filter((r) => getDecayLevel(r.createdAt).blur === 0)
+        .flatMap((r) => r.fragmentIds)
+    ),
     [reflections]
   );
   const availableFragments = useMemo(

@@ -94,9 +94,9 @@ export default function App() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    Promise.all([loadMessages(), loadFragments(), loadReflections()]).then(() =>
-      setReady(true)
-    );
+    Promise.all([loadMessages(), loadFragments()])
+      .then(() => loadReflections())
+      .then(() => setReady(true));
   }, [loadMessages, loadFragments, loadReflections]);
 
   if (!ready) {
