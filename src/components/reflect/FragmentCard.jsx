@@ -62,7 +62,7 @@ export function FragmentContent({ fragment, t }) {
         );
       }
       return (
-        <div onClick={(e) => e.stopPropagation()}>
+        <div className="w-fit" onClick={(e) => e.stopPropagation()}>
           <MediaLink url={fragment.content.url} />
         </div>
       );
