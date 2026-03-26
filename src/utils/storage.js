@@ -1,7 +1,13 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'mind-diary';
-const DB_VERSION = 4;
+const DB_VERSION = 5;
+
+function genId() {
+  return typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+}
 
 function getDB() {
   return openDB(DB_NAME, DB_VERSION, {
@@ -26,70 +32,112 @@ function getDB() {
         const fragments = tx.objectStore('fragments');
         fragments.createIndex('sourceReflectionId', 'sourceReflectionId', { unique: false });
       }
+      if (oldVersion < 5) {
+        const nodesStore = db.createObjectStore('nodes', { keyPath: 'id' });
+        nodesStore.createIndex('level', 'level', { unique: false });
+        nodesStore.createIndex('createdAt', 'createdAt', { unique: false });
+        nodesStore.createIndex('lastInteractedAt', 'lastInteractedAt', { unique: false });
+      }
     },
   });
 }
 
-export async function getAllMessages() {
+// Run migration from old stores (fragments/reflections) to nodes.
+// Called once on app startup after DB is opened.
+export async function migrateToNodes() {
   const db = await getDB();
-  return db.getAll('messages');
+
+  // Check if migration already happened (nodes store has data)
+  const existingCount = await db.count('nodes');
+  if (existingCount > 0) return false;
+
+  // Check if old stores have data to migrate
+  const hasFragments = db.objectStoreNames.contains('fragments');
+  const hasReflections = db.objectStoreNames.contains('reflections');
+
+  if (!hasFragments && !hasReflections) return false;
+
+  const oldFragments = hasFragments ? await db.getAll('fragments') : [];
+  const oldReflections = hasReflections ? await db.getAll('reflections') : [];
+
+  if (oldFragments.length === 0 && oldReflections.length === 0) return false;
+
+  const nodes = [];
+
+  // Convert fragments -> atoms
+  for (const frag of oldFragments) {
+    nodes.push({
+      id: frag.id,
+      level: 'atom',
+      type: frag.type,
+      content: frag.content,
+      childIds: [],
+      note: null,
+      createdAt: frag.createdAt,
+      lastInteractedAt: frag.createdAt,
+      interactionCount: 1,
+    });
+  }
+
+  // Convert reflections -> molecules
+  for (const ref of oldReflections) {
+    const childIds = (ref.fragmentIds || []).filter(id =>
+      oldFragments.some(f => f.id === id)
+    );
+
+    const molecule = {
+      id: ref.id,
+      level: 'molecule',
+      type: null,
+      content: null,
+      childIds,
+      note: ref.text || null,
+      createdAt: ref.createdAt,
+      lastInteractedAt: ref.createdAt,
+      interactionCount: 1,
+    };
+    nodes.push(molecule);
+  }
+
+  // Write all nodes in a single transaction
+  const tx = db.transaction('nodes', 'readwrite');
+  for (const node of nodes) {
+    tx.store.put(node);
+  }
+  await tx.done;
+
+  return true;
 }
 
-export async function saveMessage(message) {
+// --- Node CRUD ---
+
+export async function getAllNodes() {
   const db = await getDB();
-  await db.put('messages', message);
+  return db.getAll('nodes');
 }
 
-export async function deleteMessage(id) {
+export async function saveNode(node) {
   const db = await getDB();
-  await db.delete('messages', id);
+  await db.put('nodes', node);
 }
 
-export async function getAllFragments() {
+export async function saveNodes(nodes) {
   const db = await getDB();
-  return db.getAll('fragments');
-}
-
-export async function saveFragment(fragment) {
-  const db = await getDB();
-  await db.put('fragments', fragment);
-}
-
-export async function deleteFragmentsByMessageId(messageId) {
-  const db = await getDB();
-  const tx = db.transaction('fragments', 'readwrite');
-  const index = tx.store.index('sourceMessageId');
-  let cursor = await index.openCursor(messageId);
-  while (cursor) {
-    await cursor.delete();
-    cursor = await cursor.continue();
+  const tx = db.transaction('nodes', 'readwrite');
+  for (const node of nodes) {
+    tx.store.put(node);
   }
   await tx.done;
 }
 
-export async function deleteFragmentsByReflectionId(reflectionId) {
+export async function deleteNode(id) {
   const db = await getDB();
-  const tx = db.transaction('fragments', 'readwrite');
-  const index = tx.store.index('sourceReflectionId');
-  let cursor = await index.openCursor(reflectionId);
-  while (cursor) {
-    await cursor.delete();
-    cursor = await cursor.continue();
-  }
+  await db.delete('nodes', id);
+}
+
+export async function clearAllNodes() {
+  const db = await getDB();
+  const tx = db.transaction('nodes', 'readwrite');
+  await tx.store.clear();
   await tx.done;
-}
-
-export async function getAllReflections() {
-  const db = await getDB();
-  return db.getAll('reflections');
-}
-
-export async function saveReflection(reflection) {
-  const db = await getDB();
-  await db.put('reflections', reflection);
-}
-
-export async function deleteReflection(id) {
-  const db = await getDB();
-  await db.delete('reflections', id);
 }

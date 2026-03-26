@@ -7,6 +7,7 @@ const useUserStore = create(
       name: '',
       language: 'uk',
       onboardingComplete: false,
+      onboardingStep: 0,
       createdAt: null,
       preferences: {
         weekStartDay: 'monday',
@@ -14,11 +15,19 @@ const useUserStore = create(
 
       setName: (name) => set({ name }),
       setLanguage: (language) => set({ language }),
+      setOnboardingStep: (step) => set({ onboardingStep: step }),
 
       completeOnboarding: () =>
         set({
           onboardingComplete: true,
+          onboardingStep: 5,
           createdAt: Date.now(),
+        }),
+
+      resetOnboarding: () =>
+        set({
+          onboardingComplete: false,
+          onboardingStep: 0,
         }),
 
       updatePreferences: (newPrefs) =>

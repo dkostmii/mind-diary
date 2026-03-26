@@ -3,57 +3,14 @@ import {
   Routes,
   Route,
   Navigate,
-  Link,
-  useLocation,
-} from "react-router-dom";
-import { useEffect, useState } from "react";
-import { Analytics } from "@vercel/analytics/react";
-import { LanguageProvider, useTranslation } from "../i18n";
-import useUserStore from "../store/useUserStore";
-import useMessageStore from "../store/useMessageStore";
-import useFragmentStore from "../store/useFragmentStore";
-import useReflectionStore from "../store/useReflectionStore";
-import { extractFragments } from "../engine/fragmentExtractor";
-import routes from "./routes";
-
-function NavBar() {
-  const location = useLocation();
-  const { t } = useTranslation();
-  if (location.pathname === "/onboarding") return null;
-
-  const links = [
-    { to: "/", label: "📝", nameKey: "nav.journal" },
-    { to: "/reflect", label: "💭", nameKey: "nav.reflect" },
-    { to: "/recall", label: "📖", nameKey: "nav.recall" },
-    { to: "/settings", label: "⚙️", nameKey: "nav.settings" },
-  ];
-
-  return (
-    <nav className="shrink-0 bg-white dark:bg-stone-800 border-t border-stone-200 dark:border-stone-700 z-50">
-      <div className="max-w-md mx-auto flex justify-around py-2">
-        {links.map(({ to, label, nameKey }) => {
-          const active = location.pathname === to;
-          const name = t(nameKey);
-          return (
-            <Link
-              key={to}
-              to={to}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1 text-xs transition-colors ${
-                active
-                  ? "text-indigo-600 dark:text-indigo-400"
-                  : "text-stone-500 dark:text-stone-400"
-              }`}
-              aria-label={name}
-            >
-              <span className="text-lg">{label}</span>
-              <span>{name}</span>
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
-  );
-}
+} from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Analytics } from '@vercel/analytics/react';
+import { LanguageProvider } from '../i18n';
+import useUserStore from '../store/useUserStore';
+import useNodeStore from '../store/useNodeStore';
+import { migrateToNodes } from '../utils/storage';
+import routes from './routes';
 
 function AppContent() {
   const onboardingComplete = useUserStore((s) => s.onboardingComplete);
@@ -63,7 +20,7 @@ function AppContent() {
       <Routes>
         <Route
           path="/onboarding"
-          element={routes.find((r) => r.path === "/onboarding").element}
+          element={routes.find((r) => r.path === '/onboarding').element}
         />
         <Route path="*" element={<Navigate to="/onboarding" replace />} />
       </Routes>
@@ -71,55 +28,34 @@ function AppContent() {
   }
 
   return (
-    <>
-      <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-        <Routes>
-          {routes
-            .filter((r) => r.path !== "/onboarding")
-            .map((r) => (
-              <Route key={r.path} path={r.path} element={r.element} />
-            ))}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </div>
-      <NavBar />
-    </>
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+      <Routes>
+        {routes
+          .filter((r) => r.path !== '/onboarding')
+          .map((r) => (
+            <Route key={r.path} path={r.path} element={r.element} />
+          ))}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </div>
   );
 }
 
 export default function App() {
-  const loadMessages = useMessageStore((s) => s.loadMessages);
-  const loadFragments = useFragmentStore((s) => s.loadFragments);
-  const loadReflections = useReflectionStore((s) => s.loadReflections);
+  const loadNodes = useNodeStore((s) => s.loadNodes);
   const language = useUserStore((s) => s.language);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    Promise.all([loadMessages(), loadFragments()])
-      .then(async () => {
-        // Backfill: extract fragments from messages that predate the extraction engine
-        const messages = useMessageStore.getState().messages;
-        const fragments = useFragmentStore.getState().fragments;
-        const messageIdsWithFragments = new Set(
-          fragments.filter((f) => f.sourceMessageId).map((f) => f.sourceMessageId)
-        );
-        for (const msg of messages) {
-          if (!messageIdsWithFragments.has(msg.id)) {
-            const newFrags = extractFragments(msg);
-            if (newFrags.length > 0) {
-              await useFragmentStore.getState().addFragments(newFrags);
-            }
-          }
-        }
-      })
-      .then(() => loadReflections())
+    migrateToNodes()
+      .then(() => loadNodes())
       .then(() => setReady(true));
-  }, [loadMessages, loadFragments, loadReflections]);
+  }, [loadNodes]);
 
   if (!ready) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <span className="text-4xl animate-pulse">📝</span>
+        <span className="text-4xl animate-pulse">Mind Diary</span>
       </div>
     );
   }
