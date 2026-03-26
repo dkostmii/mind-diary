@@ -6,6 +6,7 @@ import LanguageSelector from '../shared/LanguageSelector';
 import StepWrite from './StepWrite';
 import StepAtoms from './StepAtoms';
 import StepCombine from './StepCombine';
+import StepDetail from './StepDetail';
 import StepFade from './StepFade';
 import StepDone from './StepDone';
 
@@ -15,10 +16,11 @@ const STEPS = {
   WRITE: 2,
   ATOMS: 3,
   COMBINE_A: 4,
-  COMBINE_B: 5,
-  COMBINE_MOLECULES: 6,
-  FADE: 7,
-  DONE: 8,
+  DETAIL_A: 5,
+  COMBINE_B: 6,
+  COMBINE_MOLECULES: 7,
+  FADE: 8,
+  DONE: 9,
 };
 
 function CenteredStep({ children }) {
@@ -120,7 +122,6 @@ export default function OnboardingFlow({ onComplete }) {
 
   // Step 4: Combine first batch of atoms → molecule A
   if (step === STEPS.COMBINE_A) {
-    // Show all atoms; user picks some for molecule A
     const canDoFull = atoms.length >= 4;
     return (
       <StepCombine
@@ -128,11 +129,23 @@ export default function OnboardingFlow({ onComplete }) {
         prompt={canDoFull ? t('onboarding.combineFirstPrompt') : t('onboarding.combinePrompt')}
         onComplete={(id) => {
           setMoleculeAId(id);
+          next(); // always go to DETAIL_A
+        }}
+      />
+    );
+  }
+
+  // Step 5: Long-press molecule A to see details
+  if (step === STEPS.DETAIL_A) {
+    const canDoFull = atoms.length >= 4;
+    return (
+      <StepDetail
+        moleculeId={moleculeAId}
+        onComplete={() => {
           if (canDoFull) {
             next();
           } else {
-            // Not enough for a second molecule, skip to fade
-            setFinalMoleculeId(id);
+            setFinalMoleculeId(moleculeAId);
             setStep(STEPS.FADE);
           }
         }}
@@ -140,7 +153,7 @@ export default function OnboardingFlow({ onComplete }) {
     );
   }
 
-  // Step 5: Combine remaining atoms → molecule B
+  // Step 6: Combine remaining atoms → molecule B
   if (step === STEPS.COMBINE_B) {
     const moleculeA = nodes.find(n => n.id === moleculeAId);
     const usedIds = new Set(moleculeA?.childIds || []);

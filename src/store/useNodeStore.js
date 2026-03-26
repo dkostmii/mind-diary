@@ -130,7 +130,7 @@ const useNodeStore = create((set, get) => ({
       type: null,
       content: null,
       childIds: allChildIds,
-      note: note ? note.trim() : null,
+      note: null,
       createdAt: now,
       lastInteractedAt: now,
       interactionCount: 1,

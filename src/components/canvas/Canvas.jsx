@@ -1,12 +1,14 @@
 import { useCallback, useMemo } from 'react';
 import useNodeStore from '../../store/useNodeStore';
 import useSelectionStore from '../../store/useSelectionStore';
+import { useTranslation } from '../../i18n';
 import { computeBaseHalfLife } from '../../engine/decay';
 import DecayOverlay from './DecayOverlay';
 import AtomChip from './AtomChip';
 import MoleculeCard from './MoleculeCard';
 
 export default function Canvas({ onNodeDetail }) {
+  const { t } = useTranslation();
   const nodes = useNodeStore((s) => s.nodes);
 
   const baseHalfLife = useMemo(() => computeBaseHalfLife(nodes), [nodes]);
@@ -43,6 +45,11 @@ export default function Canvas({ onNodeDetail }) {
             onLongPress={handleLongPress}
           />
         ))}
+        {sorted.length > 0 && (
+          <p className="text-xs text-stone-400 dark:text-stone-500 text-center pt-2 pb-4">
+            {t('canvas.hintLongPress')}
+          </p>
+        )}
       </div>
     </div>
   );

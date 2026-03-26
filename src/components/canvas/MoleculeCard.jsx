@@ -43,11 +43,6 @@ export default function MoleculeCard({ node, selected = false, onClick, onLongPr
           : 'border-stone-200 dark:border-stone-700'
       }`}
     >
-      {node.note && (
-        <p className="text-xs text-stone-500 dark:text-stone-400 mb-2 italic">
-          {node.note}
-        </p>
-      )}
       <div className="flex flex-col items-start gap-2">
         {children.map(child => (
           <AtomChip key={child.id} node={child} />

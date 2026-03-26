@@ -1,9 +1,8 @@
 // Default half-life in hours (used when there's not enough data to adapt).
 const DEFAULT_HALF_LIFE = 48; // 2 days
 
-// Clamp bounds for the adaptive half-life.
-const MIN_HALF_LIFE = 0.5;  // 30 minutes — for very frequent loggers
-const MAX_HALF_LIFE = 168;   // 7 days — for very infrequent users
+// Upper bound for the adaptive half-life.
+const MAX_HALF_LIFE = 168; // 7 days — for very infrequent users
 
 // How many median gaps of inactivity until a node reaches ~50% visibility.
 // 3× means: if you typically create atoms every X hours,
@@ -33,7 +32,7 @@ export function computeBaseHalfLife(nodes) {
   const medianMs = gaps[Math.floor(gaps.length / 2)];
   const medianHours = medianMs / (1000 * 60 * 60);
 
-  return Math.max(MIN_HALF_LIFE, Math.min(MAX_HALF_LIFE, medianHours * FREQUENCY_MULTIPLIER));
+  return Math.min(MAX_HALF_LIFE, medianHours * FREQUENCY_MULTIPLIER);
 }
 
 export function getDecay(node, baseHalfLife = DEFAULT_HALF_LIFE) {

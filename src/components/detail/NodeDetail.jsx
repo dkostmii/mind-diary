@@ -64,13 +64,6 @@ export default function NodeDetail({ nodeId, onClose, onAddHere }) {
           </button>
         </div>
 
-        {/* Note */}
-        {node.note && (
-          <p className="text-sm text-stone-600 dark:text-stone-300 italic bg-stone-100 dark:bg-stone-900 rounded-xl px-3 py-2">
-            {node.note}
-          </p>
-        )}
-
         {/* Content */}
         <div className="flex-1 overflow-y-auto min-h-0 space-y-3">
           {node.level === 'atom' ? (

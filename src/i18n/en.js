@@ -10,6 +10,8 @@ export default {
     combineSecondPrompt: "Now combine the remaining atoms into a second molecule.",
     combineMoleculesPrompt: "Select both molecules and combine them. Molecules merge into one \u2014 flat, no nesting.",
     moleculeExplain: "A molecule is a group of atoms you linked together. Each combination refreshes them, keeping them from fading.",
+    detailPrompt: "Long-press the molecule to open its details.",
+    detailExplain: "Here you can see the molecule's contents. Viewing details refreshes its decay.",
     fadeExplain: "Atoms fade over time, like real memories. Combining and interacting keeps them bright. What matters \u2014 you'll keep. The rest will fade.",
     doneMessage: "You're ready. Write, combine, build.",
     start: "Start",
@@ -17,6 +19,7 @@ export default {
 
   canvas: {
     emptyState: "Write your first thought. It will decompose into atoms.",
+    hintLongPress: "Long-press an item to open details",
   },
 
   composer: {

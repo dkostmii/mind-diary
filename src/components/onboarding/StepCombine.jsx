@@ -9,7 +9,6 @@ import SharedComposer from '../shared/Composer';
 export default function StepCombine({ items, prompt, onComplete }) {
   const { t } = useTranslation();
   const [selectedIds, setSelectedIds] = useState([]);
-  const [showComposer, setShowComposer] = useState(false);
   const combineNodes = useNodeStore((s) => s.combineNodes);
   const nodes = useNodeStore((s) => s.nodes);
 
@@ -19,14 +18,8 @@ export default function StepCombine({ items, prompt, onComplete }) {
     );
   };
 
-  const handleCombineClick = () => {
-    if (!showComposer) {
-      setShowComposer(true);
-      return;
-    }
-  };
-
   const handleSubmit = useCallback(async (text, images, location) => {
+    if (selectedIds.length < 2) return;
     const attachments = [];
     for (const img of (images || [])) {
       attachments.push({ type: 'photo', data: img });
@@ -79,23 +72,14 @@ export default function StepCombine({ items, prompt, onComplete }) {
           })}
         </div>
 
-        {showComposer ? (
-          <SharedComposer
-            placeholder={t('combine.notePlaceholder')}
-            buttonLabel={t('combine.confirm')}
-            buttonIcon={Combine}
-            onSubmit={handleSubmit}
-            allowEmpty
-          />
-        ) : (
-          <button
-            onClick={handleCombineClick}
-            disabled={selectedIds.length < 2}
-            className="w-full px-6 py-3 rounded-xl bg-indigo-600 text-white font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-indigo-700 transition-colors"
-          >
-            {t('combine.confirm')}
-          </button>
-        )}
+        <SharedComposer
+          placeholder={t('combine.notePlaceholder')}
+          buttonLabel={t('combine.confirm')}
+          buttonIcon={Combine}
+          onSubmit={handleSubmit}
+          allowEmpty
+          disabled={selectedIds.length < 2}
+        />
       </div>
     </div>
   );
