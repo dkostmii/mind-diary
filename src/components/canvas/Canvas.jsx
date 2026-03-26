@@ -26,7 +26,13 @@ export default function Canvas({ onNodeDetail }) {
   const sorted = [...topLevel].sort((a, b) => b.lastInteractedAt - a.lastInteractedAt);
 
   const handleSelect = useCallback((id) => {
-    useSelectionStore.getState().toggle(id);
+    const selection = useSelectionStore.getState();
+    const wasSelected = selection.selectedIds.includes(id);
+    selection.toggle(id);
+    // Selecting is an act of attention — refresh decay so the item becomes sharp
+    if (!wasSelected) {
+      useNodeStore.getState().refreshNodeDecay(id);
+    }
   }, []);
 
   const handleLongPress = useCallback((id) => {

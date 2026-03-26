@@ -64,9 +64,26 @@ const useNodeStore = create((set, get) => ({
     const node = nodes.find(n => n.id === id);
     if (!node) return;
 
+    // Refresh the node itself
     const refreshed = refreshNode(node);
-    await saveNode(refreshed);
-    set({ nodes: nodes.map(n => n.id === id ? refreshed : n) });
+    const toSave = [refreshed];
+
+    // If it's a molecule/story, also refresh its children
+    const refreshedChildren = [];
+    if (node.childIds.length > 0) {
+      for (const cid of node.childIds) {
+        const child = nodes.find(n => n.id === cid);
+        if (child) {
+          const rc = refreshNode(child);
+          refreshedChildren.push(rc);
+          toSave.push(rc);
+        }
+      }
+    }
+
+    await saveNodes(toSave);
+    const refreshedMap = new Map(toSave.map(n => [n.id, n]));
+    set({ nodes: nodes.map(n => refreshedMap.get(n.id) || n) });
   },
 
   combineNodes: async (childIds, note = null, attachments = []) => {
