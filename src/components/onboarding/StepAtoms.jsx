@@ -11,7 +11,7 @@ export default function StepAtoms({ atoms, onContinue }) {
           {t('onboarding.atomsExplain')}
         </p>
 
-        <div className="flex flex-wrap gap-2 justify-center">
+        <div className="flex flex-col items-start gap-2">
           {atoms.map(atom => (
             <AtomChip key={atom.id} node={atom} />
           ))}

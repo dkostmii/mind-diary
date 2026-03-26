@@ -35,7 +35,7 @@ export default function MoleculeCard({ node, selected = false, onClick, onLongPr
       onKeyDown={onClick ? (e) => {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); }
       } : undefined}
-      className={`rounded-2xl bg-white dark:bg-stone-800 border p-3 shadow-sm transition-all ${
+      className={`rounded-2xl bg-stone-50 dark:bg-stone-800/80 border p-3 shadow-sm transition-all ${
         onClick ? 'cursor-pointer select-none' : ''
       } ${
         selected
@@ -48,9 +48,9 @@ export default function MoleculeCard({ node, selected = false, onClick, onLongPr
           {node.note}
         </p>
       )}
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-col items-start gap-2">
         {children.map(child => (
-          <AtomChip key={child.id} node={child} compact />
+          <AtomChip key={child.id} node={child} />
         ))}
       </div>
     </div>

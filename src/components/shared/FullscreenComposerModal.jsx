@@ -62,7 +62,7 @@ export default function FullscreenComposerModal({ open, text, images, location, 
           {saveLabel}
         </button>
       </div>
-      <div className="px-4 pt-2">
+      <div className="px-4 pt-2 overflow-y-auto max-h-[30vh] shrink-0">
         <ImagePreview images={images} onChange={onChangeImages} />
         {location && (
           <div className="mb-2">

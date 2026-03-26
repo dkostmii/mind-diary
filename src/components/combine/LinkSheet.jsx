@@ -62,7 +62,7 @@ export default function LinkSheet({ open, parentId, onClose }) {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto min-h-0 space-y-1.5">
+        <div className="flex-1 overflow-y-auto min-h-0 flex flex-col items-start gap-2 py-1">
           {available.map(node => (
             <AtomChip
               key={node.id}
@@ -72,7 +72,7 @@ export default function LinkSheet({ open, parentId, onClose }) {
             />
           ))}
           {available.length === 0 && (
-            <p className="text-sm text-stone-400 text-center py-4">
+            <p className="text-sm text-stone-400 text-center py-4 w-full">
               {t('canvas.emptyState')}
             </p>
           )}
@@ -83,7 +83,7 @@ export default function LinkSheet({ open, parentId, onClose }) {
           disabled={selectedIds.length === 0}
           className="shrink-0 w-full px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-indigo-700 transition-colors"
         >
-          {t('detail.addHere')} ({selectedIds.length})
+          {t('detail.addHere')}{selectedIds.length > 0 ? ` (${selectedIds.length})` : ''}
         </button>
       </div>
     </div>

@@ -6,9 +6,12 @@ export default {
     writePrompt: "Write something about your day. Anything.",
     atomsExplain: "Your entry decomposed into atoms \u2014 individual thoughts, phrases, media. Each atom lives on its own.",
     combinePrompt: "Select a few atoms and combine them. This will create a molecule \u2014 a connection between thoughts.",
+    combineFirstPrompt: "Select a few atoms and combine them into your first molecule.",
+    combineSecondPrompt: "Now combine the remaining atoms into a second molecule.",
+    combineMoleculesPrompt: "Select both molecules and combine them. Molecules merge into one \u2014 flat, no nesting.",
     moleculeExplain: "A molecule is a group of atoms you linked together. Each combination refreshes them, keeping them from fading.",
     fadeExplain: "Atoms fade over time, like real memories. Combining and interacting keeps them bright. What matters \u2014 you'll keep. The rest will fade.",
-    doneMessage: "You're ready. Write, combine, build. Atoms \u2192 molecules \u2192 stories.",
+    doneMessage: "You're ready. Write, combine, build.",
     start: "Start",
   },
 

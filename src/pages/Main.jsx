@@ -5,7 +5,6 @@ import useNodeStore from '../store/useNodeStore';
 import Canvas from '../components/canvas/Canvas';
 import Composer from '../components/composer/Composer';
 import SelectionBar from '../components/combine/SelectionBar';
-import CombineSheet from '../components/combine/CombineSheet';
 import LinkSheet from '../components/combine/LinkSheet';
 import NodeDetail from '../components/detail/NodeDetail';
 import EmptyState from '../components/shared/EmptyState';
@@ -13,7 +12,6 @@ import EmptyState from '../components/shared/EmptyState';
 export default function Main() {
   const nodes = useNodeStore((s) => s.nodes);
   const [detailNodeId, setDetailNodeId] = useState(null);
-  const [combineOpen, setCombineOpen] = useState(false);
   const [linkParentId, setLinkParentId] = useState(null);
 
   const handleNodeDetail = (id) => {
@@ -49,13 +47,10 @@ export default function Main() {
       )}
 
       {/* Selection bar (shows when 2+ selected) */}
-      <SelectionBar onCombine={() => setCombineOpen(true)} />
+      <SelectionBar />
 
-      {/* Composer */}
+      {/* Composer (doubles as combine when items selected) */}
       <Composer />
-
-      {/* Combine bottom sheet */}
-      <CombineSheet open={combineOpen} onClose={() => setCombineOpen(false)} />
 
       {/* Node detail modal */}
       {detailNodeId && (

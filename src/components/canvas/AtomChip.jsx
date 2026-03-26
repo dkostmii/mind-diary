@@ -1,9 +1,7 @@
 import { Music, Video, MapPin, Link as LinkIcon } from 'lucide-react';
-import LinkifyText, { MediaLink } from '../shared/LinkifyText';
-import ImageThumbnails from '../shared/ImageThumbnails';
-import LocationButton from '../shared/LocationButton';
+import LinkifyText from '../shared/LinkifyText';
 
-export default function AtomChip({ node, selected = false, onClick, onLongPress, compact = false }) {
+export default function AtomChip({ node, selected = false, onClick, onLongPress }) {
   const handlePointerDown = (e) => {
     if (!onLongPress) return;
     const timer = setTimeout(() => {
@@ -38,66 +36,66 @@ export default function AtomChip({ node, selected = false, onClick, onLongPress,
         selected
           ? 'ring-2 ring-indigo-500 ring-offset-1 dark:ring-offset-stone-900'
           : ''
-      } ${compact ? '' : 'bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 shadow-sm'}`}
+      } bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 shadow-sm`}
     >
-      <AtomContent node={node} compact={compact} />
+      <AtomContent node={node} />
     </div>
   );
 }
 
-function AtomContent({ node, compact }) {
-  const padding = compact ? 'px-2 py-1' : 'px-3 py-2';
+function AtomContent({ node }) {
+  const padding = 'px-3 py-2';
 
   switch (node.type) {
     case 'text':
       return (
-        <p className={`${padding} text-stone-700 dark:text-stone-300 text-sm leading-relaxed`} onClick={(e) => { if (e.target !== e.currentTarget) e.stopPropagation(); }}>
+        <p className={`${padding} text-stone-700 dark:text-stone-300 text-sm leading-relaxed`}>
           <LinkifyText>{node.content.excerpt}</LinkifyText>
         </p>
       );
 
     case 'photo':
       return (
-        <div className={padding} onClick={(e) => e.stopPropagation()}>
-          <ImageThumbnails images={[node.content.data]} />
+        <div className={padding}>
+          <img
+            src={node.content.data}
+            alt=""
+            className="w-16 h-16 rounded-lg object-cover border border-stone-200 dark:border-stone-700 pointer-events-none"
+          />
         </div>
       );
 
     case 'location':
       return (
-        <div className={`${padding} flex items-center gap-1.5`} onClick={(e) => e.stopPropagation()}>
-          <LocationButton location={node.content} />
+        <div className={`${padding} flex items-center gap-1.5 text-stone-600 dark:text-stone-400`}>
+          <MapPin size={14} className="text-indigo-500 shrink-0" />
+          <span className="text-sm truncate">{node.content.name || 'Location'}</span>
         </div>
       );
 
     case 'music':
-    case 'video':
-      if (!node.content.url) {
-        return (
-          <div className={`${padding} flex items-center gap-2 text-stone-400`}>
-            {node.type === 'music' ? <Music size={16} /> : <Video size={16} />}
-            <span className="text-sm">{node.content.label || node.content.title || node.type}</span>
-          </div>
-        );
-      }
       return (
-        <div className={padding} onClick={(e) => e.stopPropagation()}>
-          <MediaLink url={node.content.url} />
+        <div className={`${padding} flex items-center gap-2 text-stone-600 dark:text-stone-400`}>
+          <Music size={14} className="text-[#1DB954] shrink-0" />
+          <span className="text-sm truncate">{node.content.label || node.content.title || 'Music'}</span>
+        </div>
+      );
+
+    case 'video':
+      return (
+        <div className={`${padding} flex items-center gap-2 text-stone-600 dark:text-stone-400`}>
+          <Video size={14} className="text-red-500 shrink-0" />
+          <span className="text-sm truncate">{node.content.label || node.content.title || 'Video'}</span>
         </div>
       );
 
     case 'link':
       return (
-        <div className={`${padding} flex items-center gap-1.5`} onClick={(e) => e.stopPropagation()}>
+        <div className={`${padding} flex items-center gap-1.5 text-stone-600 dark:text-stone-400`}>
           <LinkIcon size={14} className="text-indigo-500 shrink-0" />
-          <a
-            href={node.content.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-indigo-600 dark:text-indigo-400 underline truncate"
-          >
+          <span className="text-sm text-indigo-600 dark:text-indigo-400 truncate">
             {node.content.title || node.content.url}
-          </a>
+          </span>
         </div>
       );
 

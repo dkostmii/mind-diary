@@ -1,23 +1,27 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import useNodeStore from '../../store/useNodeStore';
 import useSelectionStore from '../../store/useSelectionStore';
+import { computeBaseHalfLife } from '../../engine/decay';
 import DecayOverlay from './DecayOverlay';
 import AtomChip from './AtomChip';
 import MoleculeCard from './MoleculeCard';
-import StoryCard from './StoryCard';
 
 export default function Canvas({ onNodeDetail }) {
   const nodes = useNodeStore((s) => s.nodes);
-  const [, setTick] = useState(0);
 
-  // 60-second re-render tick for decay progression
-  useEffect(() => {
-    const interval = setInterval(() => setTick(t => t + 1), 60000);
-    return () => clearInterval(interval);
-  }, []);
+  const baseHalfLife = useMemo(() => computeBaseHalfLife(nodes), [nodes]);
+
+  // Hide nodes that are children of any parent (they render inside their parent card)
+  const topLevel = useMemo(() => {
+    const childIdSet = new Set();
+    for (const n of nodes) {
+      for (const cid of n.childIds) childIdSet.add(cid);
+    }
+    return nodes.filter(n => !childIdSet.has(n.id));
+  }, [nodes]);
 
   // Sort by lastInteractedAt descending
-  const sorted = [...nodes].sort((a, b) => b.lastInteractedAt - a.lastInteractedAt);
+  const sorted = [...topLevel].sort((a, b) => b.lastInteractedAt - a.lastInteractedAt);
 
   const handleSelect = useCallback((id) => {
     useSelectionStore.getState().toggle(id);
@@ -34,6 +38,7 @@ export default function Canvas({ onNodeDetail }) {
           <CanvasNode
             key={node.id}
             node={node}
+            baseHalfLife={baseHalfLife}
             onSelect={handleSelect}
             onLongPress={handleLongPress}
           />
@@ -43,7 +48,7 @@ export default function Canvas({ onNodeDetail }) {
   );
 }
 
-function CanvasNode({ node, onSelect, onLongPress }) {
+function CanvasNode({ node, baseHalfLife, onSelect, onLongPress }) {
   const isSelected = useSelectionStore(s => s.selectedIds.includes(node.id));
 
   const handleClick = () => onSelect(node.id);
@@ -62,17 +67,15 @@ function CanvasNode({ node, onSelect, onLongPress }) {
       content = <AtomChip {...props} />;
       break;
     case 'molecule':
-      content = <MoleculeCard {...props} />;
-      break;
     case 'story':
-      content = <StoryCard {...props} />;
+      content = <MoleculeCard {...props} />;
       break;
     default:
       return null;
   }
 
   return (
-    <DecayOverlay node={node}>
+    <DecayOverlay node={node} baseHalfLife={baseHalfLife}>
       {content}
     </DecayOverlay>
   );

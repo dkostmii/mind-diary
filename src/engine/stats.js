@@ -1,12 +1,13 @@
-import { getDecay } from './decay';
+import { getDecay, computeBaseHalfLife } from './decay';
 
 export function getStats(nodes) {
   const atoms = nodes.filter(n => n.level === 'atom');
   const molecules = nodes.filter(n => n.level === 'molecule');
   const stories = nodes.filter(n => n.level === 'story');
 
-  const aliveAtoms = atoms.filter(n => getDecay(n).retention > 0.5).length;
-  const aliveMolecules = molecules.filter(n => getDecay(n).retention > 0.5).length;
+  const baseHalfLife = computeBaseHalfLife(nodes);
+  const aliveAtoms = atoms.filter(n => getDecay(n, baseHalfLife).retention > 0.5).length;
+  const aliveMolecules = molecules.filter(n => getDecay(n, baseHalfLife).retention > 0.5).length;
 
   return {
     totalAtoms: atoms.length,

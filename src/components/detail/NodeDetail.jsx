@@ -4,7 +4,9 @@ import { format } from 'date-fns';
 import { useTranslation } from '../../i18n';
 import useNodeStore from '../../store/useNodeStore';
 import AtomChip from '../canvas/AtomChip';
-import MoleculeCard from '../canvas/MoleculeCard';
+import ImageThumbnails from '../shared/ImageThumbnails';
+import LocationButton from '../shared/LocationButton';
+import LinkifyText, { MediaLink } from '../shared/LinkifyText';
 
 export default function NodeDetail({ nodeId, onClose, onAddHere }) {
   const { t } = useTranslation();
@@ -32,14 +34,14 @@ export default function NodeDetail({ nodeId, onClose, onAddHere }) {
   return (
     <div
       ref={backdropRef}
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       onPointerDown={(e) => { pointerDownTarget.current = e.target; }}
       onClick={(e) => {
         if (e.target === backdropRef.current && pointerDownTarget.current === backdropRef.current) onClose();
         pointerDownTarget.current = null;
       }}
     >
-      <div className="bg-white dark:bg-stone-800 rounded-t-2xl shadow-xl w-full max-w-lg p-4 pb-6 space-y-4 max-h-[80vh] flex flex-col">
+      <div className="bg-stone-50 dark:bg-stone-800 rounded-2xl shadow-xl w-full max-w-lg p-4 pb-6 space-y-4 max-h-[80vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between shrink-0">
           <div>
@@ -64,22 +66,19 @@ export default function NodeDetail({ nodeId, onClose, onAddHere }) {
 
         {/* Note */}
         {node.note && (
-          <p className="text-sm text-stone-600 dark:text-stone-300 italic bg-stone-50 dark:bg-stone-900 rounded-xl px-3 py-2">
+          <p className="text-sm text-stone-600 dark:text-stone-300 italic bg-stone-100 dark:bg-stone-900 rounded-xl px-3 py-2">
             {node.note}
           </p>
         )}
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto min-h-0 space-y-2">
+        <div className="flex-1 overflow-y-auto min-h-0 space-y-3">
           {node.level === 'atom' ? (
-            <AtomChip node={node} />
+            <AtomDetailContent node={node} />
           ) : (
-            children.map(child => {
-              if (child.level === 'molecule') {
-                return <MoleculeCard key={child.id} node={child} />;
-              }
-              return <AtomChip key={child.id} node={child} />;
-            })
+            children.map(child => (
+              <AtomDetailContent key={child.id} node={child} />
+            ))
           )}
         </div>
 
@@ -96,4 +95,36 @@ export default function NodeDetail({ nodeId, onClose, onAddHere }) {
       </div>
     </div>
   );
+}
+
+function AtomDetailContent({ node }) {
+  switch (node.type) {
+    case 'photo':
+      return <ImageThumbnails images={[node.content.data]} />;
+
+    case 'location':
+      return <LocationButton location={node.content} />;
+
+    case 'music':
+    case 'video':
+      if (node.content.url) {
+        return <MediaLink url={node.content.url} />;
+      }
+      return <AtomChip node={node} />;
+
+    case 'link':
+      return (
+        <a
+          href={node.content.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm text-indigo-600 dark:text-indigo-400 underline break-all"
+        >
+          {node.content.title || node.content.url}
+        </a>
+      );
+
+    default:
+      return <AtomChip node={node} />;
+  }
 }

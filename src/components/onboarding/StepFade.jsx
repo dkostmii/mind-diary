@@ -28,7 +28,7 @@ export default function StepFade({ atoms, moleculeId, onContinue }) {
 
         {/* Uncombined atoms are dimmed */}
         {uncombinedAtoms.length > 0 && (
-          <div className="flex flex-wrap gap-2 justify-center" style={{ opacity: 0.35, filter: 'blur(3px)' }}>
+          <div className="flex flex-col items-start gap-2" style={{ opacity: 0.35, filter: 'blur(3px)' }}>
             {uncombinedAtoms.map(atom => (
               <AtomChip key={atom.id} node={atom} />
             ))}

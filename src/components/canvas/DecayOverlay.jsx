@@ -1,7 +1,7 @@
 import { getDecay } from '../../engine/decay';
 
-export default function DecayOverlay({ node, children }) {
-  const { opacity, blur } = getDecay(node);
+export default function DecayOverlay({ node, baseHalfLife, children }) {
+  const { opacity, blur } = getDecay(node, baseHalfLife);
   return (
     <div
       style={{
