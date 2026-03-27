@@ -47,6 +47,7 @@ export default function StepDetail({ moleculeId, onComplete }) {
           nodeId={moleculeId}
           onClose={() => setDetailOpen(false)}
           onAddHere={() => {}}
+          readOnly
         />
       )}
     </div>

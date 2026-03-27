@@ -57,7 +57,7 @@ export default function Composer({ disabled = false }) {
         // Atom selected → combine it with the new atoms into a molecule
         await combineNodes([singleSelected.id, ...newAtomIds], null);
       } else {
-        // Molecule/story selected → add new atoms as children
+        // Molecule selected → add new atoms as children
         await addChildrenToNode(singleSelected.id, newAtomIds);
       }
       clear();
@@ -67,7 +67,7 @@ export default function Composer({ disabled = false }) {
     // Normal mode: decompose into atoms
     const atoms = decomposeEntry(text, attachments);
     if (atoms.length > 0) {
-      await addNodes(atoms);
+      await addNodes(atoms, { fromComposer: true });
     }
   }, [addNodes, combineNodes, addChildrenToNode, selectedIds, clear, isCombining, singleSelected]);
 

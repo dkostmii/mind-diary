@@ -11,7 +11,7 @@ export default function Canvas({ onNodeDetail }) {
   const { t } = useTranslation();
   const nodes = useNodeStore((s) => s.nodes);
 
-  const baseHalfLife = useMemo(() => computeBaseHalfLife(nodes), [nodes]);
+  const baseHalfLife = useMemo(() => computeBaseHalfLife(), [nodes]);
 
   // Hide nodes that are children of any parent (they render inside their parent card)
   const topLevel = useMemo(() => {
@@ -22,17 +22,11 @@ export default function Canvas({ onNodeDetail }) {
     return nodes.filter(n => !childIdSet.has(n.id));
   }, [nodes]);
 
-  // Sort by lastInteractedAt descending
-  const sorted = [...topLevel].sort((a, b) => b.lastInteractedAt - a.lastInteractedAt);
+  // Sort by createdAt descending
+  const sorted = [...topLevel].sort((a, b) => b.createdAt - a.createdAt);
 
   const handleSelect = useCallback((id) => {
-    const selection = useSelectionStore.getState();
-    const wasSelected = selection.selectedIds.includes(id);
-    selection.toggle(id);
-    // Selecting is an act of attention — refresh decay so the item becomes sharp
-    if (!wasSelected) {
-      useNodeStore.getState().refreshNodeDecay(id);
-    }
+    useSelectionStore.getState().toggle(id);
   }, []);
 
   const handleLongPress = useCallback((id) => {
@@ -80,7 +74,6 @@ function CanvasNode({ node, baseHalfLife, onSelect, onLongPress }) {
       content = <AtomChip {...props} />;
       break;
     case 'molecule':
-    case 'story':
       content = <MoleculeCard {...props} />;
       break;
     default:
@@ -88,7 +81,7 @@ function CanvasNode({ node, baseHalfLife, onSelect, onLongPress }) {
   }
 
   return (
-    <DecayOverlay node={node} baseHalfLife={baseHalfLife}>
+    <DecayOverlay node={node} baseHalfLife={baseHalfLife} sharp={isSelected}>
       {content}
     </DecayOverlay>
   );

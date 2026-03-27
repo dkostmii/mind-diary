@@ -22,7 +22,7 @@ export default function LinkSheet({ open, parentId, onClose }) {
   const available = nodes.filter(n =>
     n.id !== parentId &&
     !existingChildIds.has(n.id) &&
-    (parent?.level === 'story' || n.level === 'atom')
+    n.level === 'atom'
   );
 
   useEffect(() => {

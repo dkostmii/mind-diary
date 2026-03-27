@@ -15,12 +15,14 @@ const STEPS = {
   NAME: 1,
   WRITE: 2,
   ATOMS: 3,
-  COMBINE_A: 4,
-  DETAIL_A: 5,
-  COMBINE_B: 6,
-  COMBINE_MOLECULES: 7,
-  FADE: 8,
-  DONE: 9,
+  WRITE_MORE: 4,
+  ATOMS_MORE: 5,
+  COMBINE_A: 6,
+  DETAIL_A: 7,
+  COMBINE_B: 8,
+  COMBINE_MOLECULES: 9,
+  FADE: 10,
+  DONE: 11,
 };
 
 function CenteredStep({ children }) {
@@ -54,9 +56,19 @@ export default function OnboardingFlow({ onComplete }) {
   if (step === STEPS.LANGUAGE) {
     return (
       <CenteredStep>
-        <h1 className="text-2xl font-bold text-center text-stone-800 dark:text-stone-200">
-          Mind Diary
-        </h1>
+        <div className="flex flex-col items-center gap-3">
+          <img
+            src="/open-book-noto-192.png"
+            alt="Mind Diary"
+            className="w-20 h-20"
+          />
+          <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-200">
+            Mind Diary
+          </h1>
+        </div>
+        <p className="text-sm text-stone-500 dark:text-stone-400 text-center leading-relaxed">
+          {t('onboarding.appDescription')}
+        </p>
         <LanguageSelector value={language} onChange={setLanguage} />
         <button
           onClick={next}
@@ -72,6 +84,7 @@ export default function OnboardingFlow({ onComplete }) {
   if (step === STEPS.NAME) {
     return (
       <CenteredStep>
+        <p className="text-4xl text-center">😊👋</p>
         <h2 className="text-xl font-semibold text-center text-stone-800 dark:text-stone-200">
           {t('onboarding.namePrompt')}
         </h2>
@@ -104,23 +117,43 @@ export default function OnboardingFlow({ onComplete }) {
     return <StepWrite onComplete={(newAtoms) => { setAtoms(newAtoms); next(); }} />;
   }
 
-  // Step 3: See atoms
+  // Step 3: See atoms (+ fade demo)
   if (step === STEPS.ATOMS) {
     return <StepAtoms atoms={atoms} onContinue={() => {
-      if (atoms.length >= 4) {
-        // Full flow: two molecules, then merge
-        next();
-      } else if (atoms.length >= 2) {
-        // Partial: one molecule only, skip to fade
+      if (atoms.length >= 2) {
+        // Enough atoms, skip to combine
         setStep(STEPS.COMBINE_A);
       } else {
-        // Single atom, skip combining entirely
-        setStep(STEPS.DONE);
+        // Single atom: fade demo done, now ask for more
+        next(); // → WRITE_MORE
       }
     }} />;
   }
 
-  // Step 4: Combine first batch of atoms → molecule A
+  // Step 4: Write more (after seeing the single atom fade)
+  if (step === STEPS.WRITE_MORE) {
+    return <StepWrite
+      promptKey="onboarding.writeMorePrompt"
+      onComplete={(newAtoms) => {
+        setAtoms(prev => [...prev, ...newAtoms]);
+        next(); // → ATOMS_MORE
+      }}
+    />;
+  }
+
+  // Step 5: See all atoms (after writing more — skip fade demo, already seen it)
+  if (step === STEPS.ATOMS_MORE) {
+    return <StepAtoms atoms={atoms} skipFadeDemo onContinue={() => {
+      if (atoms.length >= 2) {
+        setStep(STEPS.COMBINE_A);
+      } else {
+        // Still not enough — send back to write more
+        setStep(STEPS.WRITE_MORE);
+      }
+    }} />;
+  }
+
+  // Step 6: Combine first batch of atoms → molecule A
   if (step === STEPS.COMBINE_A) {
     const canDoFull = atoms.length >= 4;
     return (

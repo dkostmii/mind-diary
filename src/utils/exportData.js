@@ -46,8 +46,6 @@ export function importData(file) {
               childIds: [],
               note: null,
               createdAt: frag.createdAt || Date.now(),
-              lastInteractedAt: frag.createdAt || Date.now(),
-              interactionCount: 1,
             });
           }
 
@@ -61,8 +59,6 @@ export function importData(file) {
               childIds: ref.fragmentIds || [],
               note: ref.text || null,
               createdAt: ref.createdAt || Date.now(),
-              lastInteractedAt: ref.createdAt || Date.now(),
-              interactionCount: 1,
             });
           }
 

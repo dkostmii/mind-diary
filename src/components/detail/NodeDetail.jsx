@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { X, Plus } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { X, Plus, Ungroup, Minus, Flame } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTranslation } from '../../i18n';
 import useNodeStore from '../../store/useNodeStore';
@@ -8,28 +8,42 @@ import ImageThumbnails from '../shared/ImageThumbnails';
 import LocationButton from '../shared/LocationButton';
 import LinkifyText, { MediaLink } from '../shared/LinkifyText';
 
-export default function NodeDetail({ nodeId, onClose, onAddHere }) {
+export default function NodeDetail({ nodeId, onClose, onAddHere, readOnly = false }) {
   const { t } = useTranslation();
   const nodes = useNodeStore((s) => s.nodes);
-  const refreshNodeDecay = useNodeStore((s) => s.refreshNodeDecay);
+  const removeNode = useNodeStore((s) => s.removeNode);
+  const dissolveMolecule = useNodeStore((s) => s.dissolveMolecule);
+  const removeChildFromNode = useNodeStore((s) => s.removeChildFromNode);
   const backdropRef = useRef(null);
   const pointerDownTarget = useRef(null);
+  const [fadingOut, setFadingOut] = useState(false);
 
   const node = nodes.find(n => n.id === nodeId);
-
-  // Viewing detail refreshes decay
-  useEffect(() => {
-    if (nodeId) refreshNodeDecay(nodeId);
-  }, [nodeId, refreshNodeDecay]);
-
-  if (!node) return null;
+  if (!node && !fadingOut) return null;
 
   const children = (node.childIds || [])
     .map(id => nodes.find(n => n.id === id))
     .filter(Boolean);
 
   const created = format(new Date(node.createdAt), 'dd.MM.yyyy HH:mm');
-  const canAddHere = node.level !== 'atom';
+  const isMolecule = node.level === 'molecule';
+
+  const handleDissolve = async () => {
+    await dissolveMolecule(node.id);
+    onClose();
+  };
+
+  const handleDissolveAtom = () => {
+    setFadingOut(true);
+    setTimeout(async () => {
+      await removeNode(node.id);
+      onClose();
+    }, 600);
+  };
+
+  const handleRemoveChild = async (childId) => {
+    await removeChildFromNode(node.id, childId);
+  };
 
   return (
     <div
@@ -41,7 +55,14 @@ export default function NodeDetail({ nodeId, onClose, onAddHere }) {
         pointerDownTarget.current = null;
       }}
     >
-      <div className="bg-stone-50 dark:bg-stone-800 rounded-2xl shadow-xl w-full max-w-lg p-4 pb-6 space-y-4 max-h-[80vh] flex flex-col">
+      <div
+        className="bg-stone-50 dark:bg-stone-800 rounded-2xl shadow-xl w-full max-w-lg p-4 pb-6 space-y-4 max-h-[80vh] flex flex-col"
+        style={{
+          opacity: fadingOut ? 0 : 1,
+          filter: fadingOut ? 'blur(8px)' : 'none',
+          transition: 'opacity 0.6s ease, filter 0.6s ease',
+        }}
+      >
         {/* Header */}
         <div className="flex items-center justify-between shrink-0">
           <div>
@@ -50,9 +71,6 @@ export default function NodeDetail({ nodeId, onClose, onAddHere }) {
             </span>
             <p className="text-xs text-stone-400 mt-0.5">
               {t('detail.created', { date: created })}
-            </p>
-            <p className="text-xs text-stone-400">
-              {t('detail.interactions', { count: node.interactionCount })}
             </p>
           </div>
           <button
@@ -70,21 +88,56 @@ export default function NodeDetail({ nodeId, onClose, onAddHere }) {
             <AtomDetailContent node={node} />
           ) : (
             children.map(child => (
-              <AtomDetailContent key={child.id} node={child} />
+              <div key={child.id} className="flex items-start gap-2">
+                <div className="flex-1 min-w-0">
+                  <AtomDetailContent node={child} />
+                </div>
+                {!readOnly && isMolecule && children.length > 1 && (
+                  <button
+                    onClick={() => handleRemoveChild(child.id)}
+                    className="shrink-0 mt-1 p-1 rounded-md text-stone-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                    aria-label={t('detail.removeAtom')}
+                    title={t('detail.removeAtom')}
+                  >
+                    <Minus size={14} />
+                  </button>
+                )}
+              </div>
             ))
           )}
         </div>
 
-        {/* Add here button */}
-        {canAddHere && (
-          <button
-            onClick={() => onAddHere(node.id)}
-            className="shrink-0 w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-stone-300 dark:border-stone-600 text-sm font-medium text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors"
-          >
-            <Plus size={16} />
-            {t('detail.addHere')}
-          </button>
-        )}
+        {/* Actions */}
+        {!readOnly && <div className="shrink-0 flex flex-col gap-2">
+          {isMolecule && (
+            <>
+              <button
+                onClick={() => onAddHere(node.id)}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-stone-300 dark:border-stone-600 text-sm font-medium text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors"
+              >
+                <Plus size={16} />
+                {t('detail.addHere')}
+              </button>
+              <button
+                onClick={handleDissolve}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-stone-300 dark:border-stone-600 text-sm font-medium text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              >
+                <Ungroup size={16} />
+                {t('detail.dissolve')}
+              </button>
+            </>
+          )}
+          {node.level === 'atom' && (
+            <button
+              onClick={handleDissolveAtom}
+              disabled={fadingOut}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-stone-300 dark:border-stone-600 text-sm font-medium text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-40 transition-colors"
+            >
+              <Flame size={16} />
+              {t('detail.dissolveAtom')}
+            </button>
+          )}
+        </div>}
       </div>
     </div>
   );

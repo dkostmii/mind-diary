@@ -5,7 +5,7 @@ import { decomposeEntry } from '../../engine/decompose';
 import useNodeStore from '../../store/useNodeStore';
 import SharedComposer from '../shared/Composer';
 
-export default function StepWrite({ onComplete }) {
+export default function StepWrite({ onComplete, promptKey = 'onboarding.writePrompt' }) {
   const { t } = useTranslation();
   const addNodes = useNodeStore((s) => s.addNodes);
 
@@ -29,7 +29,7 @@ export default function StepWrite({ onComplete }) {
     <div className="flex flex-col h-screen">
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 text-center space-y-4">
         <h2 className="text-xl font-semibold text-stone-800 dark:text-stone-200">
-          {t('onboarding.writePrompt')}
+          {t(promptKey)}
         </h2>
       </div>
       <SharedComposer

@@ -2,17 +2,20 @@ export default {
   app: { name: 'Mind Diary' },
 
   onboarding: {
+    appDescription: "Write your thoughts \u2014 they decompose into atoms. Atoms fade over time, like real memories. By combining them into molecules, you form connections between ideas \u2014 exactly how your brain strengthens knowledge. The more you revisit and restructure, the deeper it sticks.",
     namePrompt: "What's your name?",
     writePrompt: "Write something about your day. Anything.",
     atomsExplain: "Your entry decomposed into atoms \u2014 individual thoughts, phrases, media. Each atom lives on its own.",
+    atomsFadeExplain: "But atoms fade over time, like real memories. The more you write \u2014 the faster old ones fade.",
+    writeMorePrompt: "Now write something else \u2014 we need more atoms to show how molecules work.",
     combinePrompt: "Select a few atoms and combine them. This will create a molecule \u2014 a connection between thoughts.",
     combineFirstPrompt: "Select a few atoms and combine them into your first molecule.",
     combineSecondPrompt: "Now combine the remaining atoms into a second molecule.",
     combineMoleculesPrompt: "Select both molecules and combine them. Molecules merge into one \u2014 flat, no nesting.",
-    moleculeExplain: "A molecule is a group of atoms you linked together. Each combination refreshes them, keeping them from fading.",
+    moleculeExplain: "A molecule is a group of atoms you linked together. Combining makes them sharp again.",
     detailPrompt: "Long-press the molecule to open its details.",
-    detailExplain: "Here you can see the molecule's contents. Viewing details refreshes its decay.",
-    fadeExplain: "Atoms fade over time, like real memories. Combining and interacting keeps them bright. What matters \u2014 you'll keep. The rest will fade.",
+    detailExplain: "Here you can see the molecule's contents. You can add atoms or break it apart.",
+    fadeExplain: "Molecules fade too. When a molecule fades enough \u2014 it falls apart into atoms. The atoms become sharp so you have time to recombine them.",
     doneMessage: "You're ready. Write, combine, build.",
     start: "Start",
   },
@@ -34,11 +37,13 @@ export default {
     cancel: "Cancel",
     selected: "{count} selected",
     resultMolecule: "New molecule",
-    resultStory: "New story",
   },
 
   detail: {
     addHere: "Add here",
+    dissolve: "Break into atoms",
+    dissolveAtom: "Dissolve",
+    removeAtom: "Remove",
     created: "Created {date}",
     interactions: "{count} interactions",
   },
@@ -46,7 +51,6 @@ export default {
   levels: {
     atom: "Atom",
     molecule: "Molecule",
-    story: "Story",
   },
 
   settings: {

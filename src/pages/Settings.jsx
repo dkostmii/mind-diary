@@ -92,7 +92,6 @@ export default function Settings() {
           <div className="flex gap-4 text-xs text-stone-500 dark:text-stone-400">
             <span>{t('levels.atom')}: {stats.totalAtoms}</span>
             <span>{t('levels.molecule')}: {stats.totalMolecules}</span>
-            <span>{t('levels.story')}: {stats.totalStories}</span>
           </div>
         </section>
 

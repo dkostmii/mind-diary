@@ -41,7 +41,7 @@ export default function StepCombine({ items, prompt, onComplete }) {
         <div className="flex flex-col items-start gap-2">
           {items.map(item => {
             const node = nodes.find(n => n.id === item.id) || item;
-            if (node.level === 'molecule' || node.level === 'story') {
+            if (node.level === 'molecule') {
               return (
                 <div
                   key={node.id}

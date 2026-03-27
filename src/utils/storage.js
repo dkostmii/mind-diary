@@ -74,8 +74,6 @@ export async function migrateToNodes() {
       childIds: [],
       note: null,
       createdAt: frag.createdAt,
-      lastInteractedAt: frag.createdAt,
-      interactionCount: 1,
     });
   }
 
@@ -93,8 +91,6 @@ export async function migrateToNodes() {
       childIds,
       note: ref.text || null,
       createdAt: ref.createdAt,
-      lastInteractedAt: ref.createdAt,
-      interactionCount: 1,
     };
     nodes.push(molecule);
   }

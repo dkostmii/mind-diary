@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { getAllNodes, saveNode, saveNodes, deleteNode, clearAllNodes } from '../utils/storage';
-import { refreshNode, getDecay, computeBaseHalfLife, DISSOLVE_THRESHOLD } from '../engine/decay';
+import { getDecay, computeBaseHalfLife, DISSOLVE_THRESHOLD, recordComposerOperation } from '../engine/decay';
 
 function genId() {
   return typeof crypto.randomUUID === 'function'
@@ -17,8 +17,9 @@ const useNodeStore = create((set, get) => ({
     set({ nodes, loaded: true });
   },
 
-  addNodes: async (newNodes) => {
+  addNodes: async (newNodes, { fromComposer = false } = {}) => {
     await saveNodes(newNodes);
+    if (fromComposer) recordComposerOperation();
     set({ nodes: [...get().nodes, ...newNodes] });
   },
 
@@ -44,7 +45,7 @@ const useNodeStore = create((set, get) => ({
           ),
       });
     } else {
-      // Removing a molecule/story does NOT remove children
+      // Removing a molecule does NOT remove children
       set({ nodes: nodes.filter(n => n.id !== id) });
     }
   },
@@ -59,31 +60,28 @@ const useNodeStore = create((set, get) => ({
     set({ nodes: nodes.map(n => n.id === id ? updated : n) });
   },
 
-  refreshNodeDecay: async (id) => {
+  // Stamp createdAt to now on a node and its children (used by composer actions).
+  refreshCreatedAt: async (id) => {
     const nodes = get().nodes;
     const node = nodes.find(n => n.id === id);
     if (!node) return;
 
-    // Refresh the node itself
-    const refreshed = refreshNode(node);
-    const toSave = [refreshed];
+    const now = Date.now();
+    const stamped = { ...node, createdAt: now };
+    const toSave = [stamped];
 
-    // If it's a molecule/story, also refresh its children
-    const refreshedChildren = [];
     if (node.childIds.length > 0) {
       for (const cid of node.childIds) {
         const child = nodes.find(n => n.id === cid);
         if (child) {
-          const rc = refreshNode(child);
-          refreshedChildren.push(rc);
-          toSave.push(rc);
+          toSave.push({ ...child, createdAt: now });
         }
       }
     }
 
     await saveNodes(toSave);
-    const refreshedMap = new Map(toSave.map(n => [n.id, n]));
-    set({ nodes: nodes.map(n => refreshedMap.get(n.id) || n) });
+    const stampedMap = new Map(toSave.map(n => [n.id, n]));
+    set({ nodes: nodes.map(n => stampedMap.get(n.id) || n) });
   },
 
   combineNodes: async (childIds, note = null, attachments = []) => {
@@ -91,28 +89,23 @@ const useNodeStore = create((set, get) => ({
     const selected = nodes.filter(n => childIds.includes(n.id));
     if (selected.length < 2) return null;
 
-    // Flatten: if any selected node is a molecule/story, pull its atom children
+    // Flatten: if any selected node is a molecule, pull its atom children
     // and mark the old parent for removal
     const flatAtomIds = [];
-    const allTouched = []; // atom nodes to refresh
-    const consumedIds = []; // molecule/story ids to remove after merge
+    const consumedIds = []; // molecule ids to remove after merge
     for (const node of selected) {
-      if (node.level === 'molecule' || node.level === 'story') {
+      if (node.level === 'molecule') {
         for (const cid of node.childIds) {
           if (!flatAtomIds.includes(cid)) flatAtomIds.push(cid);
         }
-        const atomChildren = nodes.filter(n => node.childIds.includes(n.id));
-        allTouched.push(...atomChildren);
         consumedIds.push(node.id);
       } else {
         if (!flatAtomIds.includes(node.id)) flatAtomIds.push(node.id);
-        allTouched.push(node);
       }
     }
 
     const now = Date.now();
-    const base = { level: 'atom', childIds: [], note: null,
-                   createdAt: now, lastInteractedAt: now, interactionCount: 1 };
+    const base = { level: 'atom', childIds: [], note: null, createdAt: now };
     const allChildIds = [...flatAtomIds];
     const extraAtoms = [];
 
@@ -140,7 +133,6 @@ const useNodeStore = create((set, get) => ({
       allChildIds.push(atom.id);
     }
 
-    // Always produce a molecule — flat box of atoms
     const newNode = {
       id: genId(),
       level: 'molecule',
@@ -149,33 +141,28 @@ const useNodeStore = create((set, get) => ({
       childIds: allChildIds,
       note: null,
       createdAt: now,
-      lastInteractedAt: now,
-      interactionCount: 1,
     };
 
-    // Refresh all touched nodes (deduplicate)
-    const seenIds = new Set();
-    const uniqueTouched = allTouched.filter(n => {
-      if (seenIds.has(n.id)) return false;
-      seenIds.add(n.id);
-      return true;
-    });
-    const refreshedNodes = uniqueTouched.map(c => refreshNode(c));
-    const nodesToSave = [...refreshedNodes, newNode, ...extraAtoms];
+    // Stamp createdAt on all existing child atoms (they were "used" in composer)
+    const stampedAtoms = [];
+    for (const aid of flatAtomIds) {
+      const atom = nodes.find(n => n.id === aid);
+      if (atom) stampedAtoms.push({ ...atom, createdAt: now });
+    }
 
-    // Delete consumed molecules/stories from DB, then save new/refreshed nodes
+    const nodesToSave = [...stampedAtoms, newNode, ...extraAtoms];
+
     for (const id of consumedIds) {
       await deleteNode(id);
     }
     await saveNodes(nodesToSave);
+    recordComposerOperation();
 
     const consumedSet = new Set(consumedIds);
+    const stampedMap = new Map(stampedAtoms.map(n => [n.id, n]));
     const updatedNodes = get().nodes
       .filter(n => !consumedSet.has(n.id))
-      .map(n => {
-        const refreshed = refreshedNodes.find(r => r.id === n.id);
-        return refreshed || n;
-      });
+      .map(n => stampedMap.get(n.id) || n);
 
     set({ nodes: [...updatedNodes, newNode, ...extraAtoms] });
     return newNode;
@@ -186,26 +173,80 @@ const useNodeStore = create((set, get) => ({
     const parent = nodes.find(n => n.id === parentId);
     if (!parent) return;
 
+    const now = Date.now();
     const updatedChildIds = [...new Set([...parent.childIds, ...newChildIds])];
-    const refreshedParent = {
-      ...refreshNode(parent),
-      childIds: updatedChildIds,
-    };
+    const stampedParent = { ...parent, childIds: updatedChildIds, createdAt: now };
 
-    // Refresh added children too
+    // Stamp createdAt on added children (they were "used" in composer)
     const addedChildren = nodes.filter(n => newChildIds.includes(n.id));
-    const refreshedChildren = addedChildren.map(c => refreshNode(c));
+    const stampedChildren = addedChildren.map(c => ({ ...c, createdAt: now }));
 
-    const nodesToSave = [refreshedParent, ...refreshedChildren];
+    const nodesToSave = [stampedParent, ...stampedChildren];
     await saveNodes(nodesToSave);
+    recordComposerOperation();
 
     set({
       nodes: nodes.map(n => {
-        if (n.id === parentId) return refreshedParent;
-        const refreshed = refreshedChildren.find(r => r.id === n.id);
-        return refreshed || n;
+        if (n.id === parentId) return stampedParent;
+        const stamped = stampedChildren.find(s => s.id === n.id);
+        return stamped || n;
       }),
     });
+  },
+
+  // Dissolve a molecule: delete it, stamp its child atoms sharp.
+  dissolveMolecule: async (id) => {
+    const nodes = get().nodes;
+    const node = nodes.find(n => n.id === id);
+    if (!node || node.level !== 'molecule') return;
+
+    const now = Date.now();
+    await deleteNode(id);
+
+    // Stamp child atoms sharp so user can recombine them
+    const childIds = new Set(node.childIds);
+    const toSave = [];
+    const updated = nodes
+      .filter(n => n.id !== id)
+      .map(n => {
+        if (childIds.has(n.id)) {
+          const stamped = { ...n, createdAt: now };
+          toSave.push(stamped);
+          return stamped;
+        }
+        return n;
+      });
+
+    if (toSave.length > 0) await saveNodes(toSave);
+    set({ nodes: updated });
+  },
+
+  // Remove a child atom from a molecule (atom is NOT deleted, just detached).
+  removeChildFromNode: async (parentId, childId) => {
+    const nodes = get().nodes;
+    const parent = nodes.find(n => n.id === parentId);
+    if (!parent) return;
+
+    const updatedChildIds = parent.childIds.filter(cid => cid !== childId);
+    const updatedParent = { ...parent, childIds: updatedChildIds };
+    await saveNode(updatedParent);
+
+    // Stamp the detached atom sharp
+    const now = Date.now();
+    const child = nodes.find(n => n.id === childId);
+    if (child) {
+      const stampedChild = { ...child, createdAt: now };
+      await saveNode(stampedChild);
+      set({
+        nodes: nodes.map(n => {
+          if (n.id === parentId) return updatedParent;
+          if (n.id === childId) return stampedChild;
+          return n;
+        }),
+      });
+    } else {
+      set({ nodes: nodes.map(n => n.id === parentId ? updatedParent : n) });
+    }
   },
 
   importNodes: async (importedNodes) => {
@@ -229,27 +270,70 @@ const useNodeStore = create((set, get) => ({
 }));
 
 // Event-driven dissolution: whenever the store changes, check if any
-// molecules/stories have fully faded and dissolve them automatically.
+// nodes have fully faded and dissolve them automatically.
 let dissolving = false;
 useNodeStore.subscribe(async (state) => {
   if (dissolving) return;
   const { nodes } = state;
-  const baseHalfLife = computeBaseHalfLife(nodes);
-  const toDissolve = nodes.filter(
-    n => (n.level === 'molecule' || n.level === 'story') &&
-         getDecay(n, baseHalfLife).retention <= DISSOLVE_THRESHOLD
+  const baseHalfLife = computeBaseHalfLife();
+
+  // Find all nodes below the dissolution threshold.
+  const allFaded = nodes.filter(
+    n => getDecay(n, baseHalfLife).retention <= DISSOLVE_THRESHOLD
   );
+
+  // Collect molecules that will dissolve and their child atom ids
+  const dissolvingMolecules = allFaded.filter(n => n.level === 'molecule');
+  const releasedByMolecule = new Set();
+  for (const mol of dissolvingMolecules) {
+    for (const cid of mol.childIds) releasedByMolecule.add(cid);
+  }
+
+  // Never dissolve atoms that are children of a dissolving molecule —
+  // they will be stamped sharp instead.
+  const toDissolve = allFaded.filter(n => {
+    if (n.level !== 'atom') return true;
+    if (releasedByMolecule.has(n.id)) return false;
+    // Only dissolve orphan atoms with no live parent
+    const hasLiveParent = nodes.some(
+      p => p.childIds.includes(n.id) &&
+           getDecay(p, baseHalfLife).retention > DISSOLVE_THRESHOLD
+    );
+    return !hasLiveParent;
+  });
   if (toDissolve.length === 0) return;
 
   dissolving = true;
   try {
+    const now = Date.now();
+
     for (const node of toDissolve) {
       await deleteNode(node.id);
     }
     const dissolvedIds = new Set(toDissolve.map(n => n.id));
-    useNodeStore.setState({
-      nodes: useNodeStore.getState().nodes.filter(n => !dissolvedIds.has(n.id)),
-    });
+
+    // Remove dissolved nodes, refresh released atoms, clean up childIds
+    const toSave = [];
+    const remaining = useNodeStore.getState().nodes
+      .filter(n => !dissolvedIds.has(n.id))
+      .map(n => {
+        let updated = n;
+        // Stamp released atoms sharp so the user can re-combine them
+        if (releasedByMolecule.has(n.id)) {
+          updated = { ...updated, createdAt: now };
+        }
+        // Clean up childIds pointing to dissolved nodes
+        if (updated.childIds.some(cid => dissolvedIds.has(cid))) {
+          updated = { ...updated, childIds: updated.childIds.filter(cid => !dissolvedIds.has(cid)) };
+        }
+        if (updated !== n) {
+          toSave.push(updated);
+        }
+        return updated;
+      });
+
+    if (toSave.length > 0) await saveNodes(toSave);
+    useNodeStore.setState({ nodes: remaining });
   } finally {
     dissolving = false;
   }
