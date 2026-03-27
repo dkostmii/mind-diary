@@ -2,417 +2,657 @@
 
 ## Project overview
 
-Mind Diary is a **memory simulator** — a privacy-first journaling app that mirrors how human memory actually works. Users capture moments with text, photos, music, video, and locations. Over time, entries visually blur like real memories fading. But the fragments that mattered — a phrase, a photo, a song, a place — survive permanently in a fragment pool. The Reflect screen shuffles random fragments from different entries, and the user writes whatever the combination triggers. The thinking is theirs.
+Mind Diary is a memory app built on a fractal model of knowledge. You write — the app decomposes your entry into **atoms** (individual fragments: a phrase, a photo, a song, a location, a link). Atoms fade over time, following the natural human forgetting curve. To keep knowledge alive, you combine atoms into **molecules**. Combine molecules and you get **stories**. Each act of combining refreshes what you touched and reveals how your thinking connects.
 
-There is no chatbot, no AI, no scripted replies, no recommendation algorithm.
+The same pattern at every scale: small pieces compose into larger structures, and larger structures are themselves pieces of even larger ones. Like fractals. Like reality.
+
+There is no chatbot, no AI, no recommendation engine. The user does all the thinking.
 
 Primary language: Ukrainian. Secondary: English.
+
+## Core concept
+
+```
+Write an entry
+    ↓
+Entry decomposes into atoms
+    ↓
+Atoms slowly fade (forgetting curve)
+    ↓
+User selects atoms → combines into a molecule (+ optional note)
+    ↓
+Molecules slowly fade
+    ↓
+User selects molecules → combines into a story (+ optional note)
+    ↓
+Stories slowly fade
+    ↓
+Every interaction (combine, annotate, view, link) refreshes decay
+```
+
+**The key mechanic**: things fade unless you actively engage with them. Combining is the engagement. The app doesn't tell you what to combine — you see your fading atoms and decide what belongs together. That decision IS the reflection. The app just provides the raw material and the fading pressure.
 
 ## Tech stack
 
 - **Framework**: React 18+ with Vite (SPA, client-only, no SSR)
-- **Routing**: React Router v6 (hash router for static deployment compatibility)
-- **State management**: Zustand (lightweight, no boilerplate)
-- **Storage**: Browser localStorage + IndexedDB via `idb` library (all data stays on-device)
-- **Styling**: Tailwind CSS 3 (utility-first, dark mode built-in)
-- **Date handling**: date-fns (tree-shakeable, no moment.js)
-- **i18n**: Custom hook + JSON translation files (two languages, no heavy library)
+- **Routing**: React Router v6 (hash router)
+- **State management**: Zustand
+- **Storage**: IndexedDB via `idb` (all data local, zero network calls for user data)
+- **Styling**: Tailwind CSS 3
+- **Date handling**: date-fns
+- **i18n**: Custom hook + translation files (Ukrainian primary, English secondary)
 - **Testing**: Vitest + React Testing Library
-- **Build**: Vite, output to `dist/`
+- **Build**: Vite → `dist/`
 
 ## Architecture
 
 ```
 src/
 ├── app/
-│   ├── App.jsx                # Root component, router setup, language provider
-│   └── routes.jsx             # Route definitions
+│   ├── App.jsx                 # Root: router, language provider
+│   └── routes.jsx
 ├── components/
-│   ├── journal/
-│   │   ├── MessageFeed.jsx    # Scrollable list of messages with timestamps + blur
-│   │   ├── MessageCard.jsx    # Single message with inline media + decay overlay
-│   │   ├── ComposeBar.jsx     # Bottom-fixed text input + attachment buttons + send
-│   │   └── EmptyState.jsx     # Shown when no messages exist yet
-│   ├── reflect/
-│   │   ├── FragmentCollage.jsx # Random combo of 3-5 fragment cards
-│   │   ├── FragmentCard.jsx   # Renders a single fragment by type (text/photo/music/video/location)
-│   │   ├── ReflectCompose.jsx # Compose area below the collage
-│   │   └── ShuffleButton.jsx  # Request a new random combination
-│   ├── recall/
-│   │   ├── RecallFeed.jsx     # Full message history with blur applied
-│   │   └── FilterBar.jsx      # All / Has reflection / No reflection
-│   ├── pool/
-│   │   ├── PoolBar.jsx        # Compact bar chart of fragment types (for app bar)
-│   │   ├── PoolStats.jsx      # Full pool view: counts, combo count, unlock status
-│   │   └── UnlockToast.jsx    # Notification when a new combo type unlocks
-│   ├── summary/
-│   │   └── WeeklySummary.jsx  # Stats: entries, streak, fragments, reflections, combos
+│   ├── canvas/
+│   │   ├── Canvas.jsx          # Main view: renders all nodes with decay
+│   │   ├── AtomChip.jsx        # Small: renders a single atom (text/photo/music/video/location/link)
+│   │   ├── MoleculeCard.jsx    # Medium: renders a molecule (its atoms + optional note)
+│   │   ├── StoryCard.jsx       # Large: renders a story (its children + optional note)
+│   │   └── DecayOverlay.jsx    # Applies blur + dim based on node decay
+│   ├── composer/
+│   │   ├── Composer.jsx        # Bottom-fixed input: text + attachment buttons + send
+│   │   └── AttachmentPicker.jsx # Photo/music/video/location/link attachment UI
+│   ├── combine/
+│   │   ├── SelectionBar.jsx    # Appears when atoms/molecules are selected
+│   │   ├── CombineSheet.jsx    # Bottom sheet: shows selected items + note input + confirm
+│   │   └── LinkSheet.jsx       # Bottom sheet: link existing node to another + add info
+│   ├── detail/
+│   │   └── NodeDetail.jsx      # Expanded view of a molecule/story showing its children
+│   ├── onboarding/
+│   │   ├── OnboardingFlow.jsx  # Guided walkthrough: write → atoms → combine → fade
+│   │   ├── StepWrite.jsx       # Step 1: write your first entry
+│   │   ├── StepAtoms.jsx       # Step 2: see it decompose
+│   │   ├── StepCombine.jsx     # Step 3: combine atoms
+│   │   ├── StepFade.jsx        # Step 4: understand decay
+│   │   └── StepDone.jsx        # Step 5: you're ready
 │   └── shared/
 │       ├── LanguageSelector.jsx
-│       └── OnboardingFlow.jsx # Language → name → blur philosophy → journal
+│       └── EmptyState.jsx
 ├── i18n/
-│   ├── uk.js                  # Ukrainian translations (primary)
-│   ├── en.js                  # English translations
-│   └── index.js               # LanguageContext provider + useTranslation hook
+│   ├── uk.js
+│   ├── en.js
+│   └── index.js                # LanguageContext + useTranslation
 ├── store/
-│   ├── useMessageStore.js     # Zustand: messages (IndexedDB)
-│   ├── useFragmentStore.js    # Zustand: fragments (IndexedDB) — NEW
-│   ├── useReflectionStore.js  # Zustand: reflections (IndexedDB) — NEW
-│   └── useUserStore.js        # User profile (localStorage)
+│   ├── useNodeStore.js         # Zustand: all nodes (atoms, molecules, stories)
+│   ├── useSelectionStore.js    # Zustand: current multi-select state
+│   └── useUserStore.js         # User profile + onboarding progress
 ├── engine/
-│   ├── fragmentExtractor.js   # Extract fragments from a message on save — NEW
-│   ├── comboGenerator.js      # Generate random fragment combos for Reflect — NEW
-│   ├── decayCalculator.js     # Compute blur/opacity from entry age — NEW
-│   └── poolStats.js           # Pool counts, combo math, unlock thresholds — NEW
+│   ├── decompose.js            # Decompose entry text + attachments into atoms
+│   ├── decay.js                # Compute decay (blur + opacity) from forgetting curve
+│   └── stats.js                # Atom/molecule/story counts, activity metrics
 ├── pages/
-│   ├── Journal.jsx            # Main screen — message feed + compose + pool bar
-│   ├── Reflect.jsx            # Fragment collage + association compose — REDESIGNED
-│   ├── Recall.jsx             # Browse all messages with blur + filters
-│   ├── Settings.jsx           # Name, language, export/import
-│   └── Onboarding.jsx         # First-launch flow with blur philosophy
+│   ├── Main.jsx                # Single main screen: canvas + composer
+│   ├── Settings.jsx            # Name, language, export/import
+│   └── Onboarding.jsx          # First-launch guided flow
 ├── utils/
-│   ├── storage.js             # IndexedDB wrapper (idb)
-│   ├── exportData.js          # JSON/CSV export (always exports full unblurred data)
-│   └── streak.js              # Streak and weekly stats calculations
-└── index.jsx                  # Entry point
+│   ├── storage.js              # IndexedDB wrapper
+│   └── exportData.js           # JSON export (all nodes)
+└── index.jsx
 ```
 
-## Core data models
+## Data model
 
-### Message (IndexedDB `messages` store) — updated
+Everything is a **Node**. The `level` field determines its scale.
+
+### Node (IndexedDB `nodes` store)
 
 ```js
 {
   id: crypto.randomUUID(),
-  text: 'Whatever the user wrote',
-  createdAt: 1710700000000,
-  date: '2026-03-17',
-  pinned: false,                    // Premium: bypass decay
-  attachments: [                    // Already built
-    { type: 'photo', id: 'att-1', data: '...' },
-    { type: 'music', id: 'att-2', url: '...', title: '...', artist: '...' },
-    { type: 'video', id: 'att-3', url: '...', thumbnailUrl: '...' },
-    { type: 'location', id: 'att-4', name: '...', lat: 49.84, lng: 24.02 }
-  ]
-}
-```
 
-### Fragment (IndexedDB `fragments` store) — new
+  level: 'atom' | 'molecule' | 'story',
 
-```js
-{
-  id: crypto.randomUUID(),
-  type: 'text' | 'photo' | 'music' | 'video' | 'location',
+  // --- Content (atoms only) ---
+  type: 'text' | 'photo' | 'music' | 'video' | 'location' | 'link' | null,
   content: {
     // text:     { excerpt: 'choose comfort over growth' }
-    // photo:    { photoId: 'att-1', data: '...' }
+    // photo:    { data: '...base64 or blob ref...' }
     // music:    { title: '...', artist: '...', url: '...' }
     // video:    { thumbnailUrl: '...', url: '...' }
     // location: { name: '...', lat: 49.84, lng: 24.02 }
-  },
-  sourceMessageId: 'msg-uuid',     // Back-reference (data integrity only — never shown to user)
-  createdAt: 1710700000000
+    // link:     { url: '...', title: '...' }
+  } | null,
+
+  // --- Composition (molecules and stories) ---
+  childIds: [],               // Atom IDs for molecules, molecule/atom IDs for stories
+  note: '' | null,            // User's annotation when combining ("why these belong together")
+
+  // --- Decay ---
+  createdAt: 1710700000000,
+  lastInteractedAt: 1710700000000,  // Updated on: create, combine into, view detail, annotate
+  interactionCount: 1,              // Incremented on each interaction. Affects decay rate.
 }
 ```
 
-### Reflection (IndexedDB `reflections` store) — redesigned
+### Constraints
 
-```js
-{
-  id: crypto.randomUUID(),
-  fragmentIds: ['frag-1', 'frag-5', 'frag-12'],
-  text: 'What the user wrote about this combo',
-  createdAt: 1711300000000
-}
-```
+- An **atom** has `type` + `content`, empty `childIds`, no `note`.
+- A **molecule** has `childIds` pointing to atoms, optional `note`, `type` is null.
+- A **story** has `childIds` pointing to molecules and/or atoms, optional `note`, `type` is null.
+- A node can be a child of multiple parents (an atom can be in several molecules).
+- Deleting a parent does NOT delete children (atoms persist independently).
+- Deleting an atom removes it from all parent `childIds` arrays.
 
-Note: reflections are NO LONGER stored inside messages. They are a separate store linked to fragment combos.
-
-### User (localStorage `mind-diary-user`) — unchanged
+### User (localStorage `mind-diary-user`)
 
 ```js
 {
   name: 'Dmytro',
   language: 'uk',
-  onboardingComplete: true,
+  onboardingComplete: false,
+  onboardingStep: 0,             // Tracks guided onboarding progress (0-5)
   createdAt: 1710600000000,
-  preferences: { weekStartDay: 'monday' }
+  preferences: {
+    weekStartDay: 'monday'
+  }
 }
 ```
 
-## Fragment extraction engine
+## Entry decomposition
 
-Fragments are extracted at the moment a message is saved.
+When the user writes in the Composer and taps send, the entry is decomposed into atoms. The original entry text is NOT stored as a single object — it only exists as its atoms.
 
-### engine/fragmentExtractor.js
+### engine/decompose.js
 
 ```js
-export function extractFragments(message) {
-  const fragments = [];
+export function decomposeEntry(text, attachments = []) {
+  const atoms = [];
+  const now = Date.now();
+  const base = { level: 'atom', childIds: [], note: null,
+                 createdAt: now, lastInteractedAt: now, interactionCount: 1 };
 
-  if (message.text && message.text.trim().length > 0) {
-    fragments.push({
-      id: crypto.randomUUID(),
-      type: 'text',
-      content: { excerpt: extractExcerpt(message.text) },
-      sourceMessageId: message.id,
-      createdAt: message.createdAt
-    });
+  // 1. Text → split into sentence/clause atoms
+  if (text && text.trim()) {
+    const excerpts = extractExcerpts(text);
+    for (const excerpt of excerpts) {
+      atoms.push({
+        ...base,
+        id: crypto.randomUUID(),
+        type: 'text',
+        content: { excerpt }
+      });
+    }
   }
 
-  for (const att of (message.attachments || [])) {
-    fragments.push({
+  // 2. Each attachment → one atom
+  for (const att of attachments) {
+    atoms.push({
+      ...base,
       id: crypto.randomUUID(),
       type: att.type,
-      content: buildFragmentContent(att),
-      sourceMessageId: message.id,
-      createdAt: message.createdAt
+      content: buildContent(att)
     });
   }
 
-  return fragments;
+  return atoms;
 }
 
-function extractExcerpt(text) {
-  const clauses = text.split(/[.,;!?\—\-\n]+/)
-    .map(c => c.trim())
-    .filter(c => {
-      const words = c.split(/\s+/).length;
-      return words >= 3 && words <= 8;
-    });
+function extractExcerpts(text) {
+  // Split on sentence boundaries
+  const sentences = text
+    .split(/(?<=[.!?…])\s+|(?<=\n)/)
+    .map(s => s.trim())
+    .filter(s => s.length > 0);
 
-  if (clauses.length === 0) {
-    return text.split(/\s+/).slice(0, 8).join(' ');
+  if (sentences.length === 0) return [text.trim()];
+
+  // Each sentence becomes its own atom.
+  // Very long sentences (>12 words) get split on clause boundaries.
+  const results = [];
+  for (const sentence of sentences) {
+    const words = sentence.split(/\s+/).length;
+    if (words <= 12) {
+      results.push(sentence);
+    } else {
+      // Split on clause boundaries, keep 3-12 word chunks
+      const clauses = sentence.split(/[,;:\—\-–]/)
+        .map(c => c.trim())
+        .filter(c => c.split(/\s+/).length >= 2);
+      if (clauses.length > 1) {
+        results.push(...clauses);
+      } else {
+        results.push(sentence);
+      }
+    }
   }
-  return clauses[Math.floor(Math.random() * clauses.length)];
+  return results;
 }
 
-function buildFragmentContent(att) {
+function buildContent(att) {
   switch (att.type) {
-    case 'photo':    return { photoId: att.id, data: att.data };
+    case 'photo':    return { data: att.data };
     case 'music':    return { title: att.title, artist: att.artist, url: att.url };
     case 'video':    return { thumbnailUrl: att.thumbnailUrl, url: att.url };
     case 'location': return { name: att.name, lat: att.lat, lng: att.lng };
+    case 'link':     return { url: att.url, title: att.title || '' };
   }
 }
 ```
 
-## Blur / decay system
+**Key change from v3**: every sentence becomes its own atom (not just one random excerpt per entry). The user's full thought is preserved — but as a collection of independent pieces, not a monolithic block.
 
-### engine/decayCalculator.js
+## Decay system (forgetting curve)
+
+Decay follows a simplified Ebbinghaus forgetting curve. Each node has its own decay based on when it was last interacted with and how many times it's been touched.
+
+### engine/decay.js
 
 ```js
-export function getDecayLevel(createdAt, pinned = false) {
-  if (pinned) return { blur: 0, opacity: 1.0 };
+// Base half-life in hours: how long until a node reaches ~50% visibility
+// with no interactions beyond creation.
+const BASE_HALF_LIFE = 48; // 2 days
 
-  const hoursAgo = (Date.now() - createdAt) / (1000 * 60 * 60);
+export function getDecay(node) {
+  const hoursSinceInteraction =
+    (Date.now() - node.lastInteractedAt) / (1000 * 60 * 60);
 
-  if (hoursAgo < 24)  return { blur: 0,   opacity: 1.0  };
-  if (hoursAgo < 72)  return { blur: 1.5, opacity: 0.85 };
-  if (hoursAgo < 168) return { blur: 3,   opacity: 0.7  };
-  if (hoursAgo < 720) return { blur: 5,   opacity: 0.5  };
-  return                      { blur: 8,   opacity: 0.35 };
+  // Stability increases with interactions (logarithmic, diminishing returns)
+  // 1 interaction = 1x, 3 = ~2x, 7 = ~2.9x, 15 = ~3.7x
+  const stability = 1 + Math.log2(node.interactionCount);
+
+  // Effective half-life scales with stability
+  const effectiveHalfLife = BASE_HALF_LIFE * stability;
+
+  // Exponential decay: retention = 2^(-t/halfLife)
+  const retention = Math.pow(2, -hoursSinceInteraction / effectiveHalfLife);
+
+  // Map retention (0-1) to visual properties
+  // retention 1.0 = fully sharp, retention 0.0 = nearly invisible
+  const opacity = Math.max(0.12, retention);
+  const blur = Math.max(0, (1 - retention) * 8);
+
+  return { opacity, blur, retention };
 }
-```
 
-Applied in MessageCard:
-```jsx
-const decay = getDecayLevel(message.createdAt, message.pinned);
-<div style={{ filter: `blur(${decay.blur}px)`, opacity: decay.opacity }}>
-```
-
-**What stays sharp**: fragments, pinned entries (premium), reflection text, entry metadata (dates, attachment type indicators).
-
-**Data is never deleted.** Blur is CSS only. Export always produces unblurred data.
-
-## Fragment combination algorithm
-
-### engine/comboGenerator.js
-
-```js
-export function generateFragmentCombo(fragments, recentCombos = []) {
-  const recentIds = new Set(
-    recentCombos.slice(-5).flatMap(c => c.fragmentIds)
-  );
-  const available = fragments.filter(f => !recentIds.has(f.id));
-  if (available.length < 3) return null;
-
-  const comboSize = available.length >= 50 ? randInt(3, 5) :
-                    available.length >= 20 ? randInt(3, 4) : 3;
-
-  const byType = groupBy(available, 'type');
-  const types = shuffle(Object.keys(byType));
-  const selected = [];
-
-  for (const type of types) {
-    if (selected.length >= comboSize) break;
-    selected.push(randomItem(byType[type]));
-  }
-
-  const remaining = available.filter(f => !selected.includes(f));
-  while (selected.length < comboSize && remaining.length > 0) {
-    const pick = randomItem(remaining);
-    selected.push(pick);
-    remaining.splice(remaining.indexOf(pick), 1);
-  }
-
-  return shuffle(selected);
-}
-```
-
-## Pool stats and unlock thresholds
-
-### engine/poolStats.js
-
-```js
-const UNLOCK_THRESHOLDS = [
-  { key: 'basic',      test: (s) => s.total >= 10,          label: 'reflect.unlockBasic' },
-  { key: 'visual',     test: (s) => s.byType.photo > 0,     label: 'reflect.unlockVisual' },
-  { key: 'sensory',    test: (s) => s.byType.music > 0,     label: 'reflect.unlockSensory' },
-  { key: 'placeBased', test: (s) => s.byType.location > 0,  label: 'reflect.unlockPlace' },
-  { key: 'rich',       test: (s) => s.total >= 50,          label: 'reflect.unlockRich' },
-  { key: 'full',       test: (s) => s.total >= 100,         label: 'reflect.unlockFull' },
-];
-
-export function getPoolStats(fragments) {
-  const byType = {
-    text:     fragments.filter(f => f.type === 'text').length,
-    photo:    fragments.filter(f => f.type === 'photo').length,
-    music:    fragments.filter(f => f.type === 'music').length,
-    video:    fragments.filter(f => f.type === 'video').length,
-    location: fragments.filter(f => f.type === 'location').length,
+// Call this whenever a user interacts with a node
+export function refreshNode(node) {
+  return {
+    ...node,
+    lastInteractedAt: Date.now(),
+    interactionCount: node.interactionCount + 1
   };
-  const total = fragments.length;
-  const combos = total >= 3 ? Math.round(total * (total - 1) * (total - 2) / 6) : 0;
-  return { byType, total, combos };
-}
-
-export function getUnlockedFeatures(stats) {
-  return UNLOCK_THRESHOLDS.filter(t => t.test(stats)).map(t => t.key);
 }
 ```
+
+### What counts as an interaction (refreshes decay)
+
+| Action | Refreshes |
+|--------|-----------|
+| Creating a node | The new node |
+| Combining atoms into a molecule | All selected atoms + the new molecule |
+| Combining molecules into a story | All selected molecules + the new story |
+| Adding a note to an existing node | That node |
+| Linking a node into a new combination | The linked node + the new parent |
+| Viewing a node's detail (expanding it) | That node |
+
+### What does NOT refresh
+
+- Scrolling past a node in the canvas (passive viewing doesn't count)
+- Seeing a node inside a parent's detail view (only the parent refreshes)
+
+## The canvas (main screen)
+
+One screen. Everything lives here.
+
+### Layout
+
+```
+┌─────────────────────────────┐
+│  App bar: "Mind Diary" + ⚙  │
+├─────────────────────────────┤
+│                             │
+│  Canvas: all nodes, sorted  │
+│  by lastInteractedAt desc   │
+│                             │
+│  Atoms = small chips        │
+│  Molecules = medium cards   │
+│  Stories = large cards      │
+│                             │
+│  Everything has decay       │
+│  overlay (blur + opacity)   │
+│                             │
+│  Tap = select (multi)       │
+│  Long-press = view detail   │
+│                             │
+├─────────────────────────────┤
+│  [Selection bar if active]  │
+│  "3 selected" [Combine] btn │
+├─────────────────────────────┤
+│  Composer: text + attach    │
+└─────────────────────────────┘
+```
+
+### Visual hierarchy
+
+| Level | Rendering | Size |
+|-------|-----------|------|
+| Atom (text) | Chip/pill with the excerpt text | Small, inline, wrapping |
+| Atom (photo) | Thumbnail image | ~80px square |
+| Atom (music) | Compact card: album art + title | Small card |
+| Atom (video) | Compact card: thumbnail | Small card |
+| Atom (location) | Compact card: place name + mini pin | Small card |
+| Atom (link) | Compact card: favicon + title + URL | Small card |
+| Molecule | Card containing its child atoms rendered inside + optional note | Medium card |
+| Story | Larger card containing its child molecules/atoms + optional note | Large card |
+
+### Sorting
+
+Default sort: `lastInteractedAt` descending (most recently touched at top). This means freshly created or recently combined items float up, while neglected items sink and fade.
+
+### Selection mode
+
+- **Tap** an atom or molecule to toggle its selection (highlight border, checkmark).
+- When 2+ items are selected, the **SelectionBar** appears above the Composer.
+- SelectionBar shows count + "Об'єднати" (Combine) button.
+- Tapping Combine opens the **CombineSheet**.
+- Selecting only atoms → creates a molecule. Selecting any molecules → creates a story. Selecting a mix → creates a story.
+- **Cancel** button clears selection.
+
+### CombineSheet (bottom sheet)
+
+1. Shows the selected items as a preview (mini versions).
+2. Optional text input: "Додай нотатку..." ("Add a note...") — the user can explain WHY these belong together, or leave it empty.
+3. "Об'єднати" (Combine) button → creates the new molecule/story node, refreshes all children, closes sheet.
+4. The note, if provided, also becomes a text atom that is automatically added as a child of the new node.
+
+### Linking to existing nodes
+
+- Long-press a node → opens **NodeDetail** (expanded view showing its children if molecule/story, or just the content if atom).
+- In NodeDetail, there is a "Додати сюди" ("Add here") button.
+- Tapping "Add here" enters a selection mode where the user picks other atoms/molecules to link into this node.
+- Selected items are added to the node's `childIds`. All touched nodes refresh.
+- The user can also type a new note that gets added as a new text atom child.
+
+### Canvas empty state
+
+Before any entries: warm welcome `t('canvas.emptyState')` — "Напиши першу думку. Вона розкладеться на атоми."
+
+## Composer
+
+Fixed at the bottom of the Main screen. Always accessible.
+
+- Expandable textarea (grows to ~4 lines, then scrolls)
+- Attachment bar: buttons for photo, music/audio, video, location, link
+- Send button (disabled when empty and no attachments)
+- Keyboard shortcut: Ctrl+Enter / Cmd+Enter to send
+- On send:
+  1. `decomposeEntry(text, attachments)` produces atom nodes
+  2. Atoms are written to `nodes` store
+  3. Atoms appear in the canvas with full opacity (freshly created)
+  4. Composer clears
+  5. Canvas scrolls to top (newest items)
+
+## Node detail view
+
+Long-press any node → expands to a detail view (could be a modal, a bottom sheet, or an inline expansion — pick the simplest).
+
+**Atom detail**: shows the full content (full-size photo, playable music/video, map for location, link preview). Shows creation date. "Додати сюди" button is hidden (atoms have no children).
+
+**Molecule detail**: shows all child atoms rendered at full clarity (regardless of their individual decay — viewing the parent refreshes it, and seeing the children in context is the point). Shows the note if present. "Додати сюди" button to link more atoms. Shows creation date.
+
+**Story detail**: shows all child molecules and atoms rendered at full clarity. Shows the note if present. "Додати сюди" button to link more. Shows creation date.
+
+**Viewing detail counts as an interaction** → refreshes that node's decay.
+
+## Guided onboarding
+
+The onboarding is an interactive walkthrough, not just info screens. The user performs real actions in a guided context.
+
+### Flow
+
+```
+LANGUAGE_SELECT → NAME_INPUT → STEP_WRITE → STEP_ATOMS → STEP_COMBINE → STEP_FADE → STEP_DONE → MAIN
+```
+
+### Steps
+
+**Step 0: Language + name**
+- Language selector: "Українська" / "English"
+- Name input: `t('onboarding.namePrompt')` — "Як тебе звати?"
+- Continue button
+
+**Step 1: Write** (`StepWrite`)
+- Screen shows a Composer with a prompt: `t('onboarding.writePrompt')` — "Напиши щось про свій день. Що завгодно."
+- User types and sends their first entry.
+- The entry text stays on screen for a moment.
+- Continue button or auto-advance after send.
+
+**Step 2: See atoms** (`StepAtoms`)
+- The entry text animates/transitions into its decomposed atoms.
+- Brief explanation: `t('onboarding.atomsExplain')` — "Твій запис розклався на атоми — окремі думки, фрази, медіа. Кожен атом живе самостійно."
+- Atoms appear as chips, highlighted.
+- Continue button.
+
+**Step 3: Combine** (`StepCombine`)
+- Prompt: `t('onboarding.combinePrompt')` — "Обери кілька атомів і об'єднай їх. Це створить молекулу — зв'язок між думками."
+- User selects 2+ atoms from the ones just created.
+- Combine button appears. User taps it.
+- Optional note input shown. User can type or skip.
+- Molecule appears. Brief explanation: `t('onboarding.moleculeExplain')` — "Молекула — це група атомів, які ти зв'язав(ла). Кожне об'єднання оновлює їх, не даючи згаснути."
+- Continue button.
+
+**Step 4: Understand fade** (`StepFade`)
+- Visual demo: the atoms that were NOT combined begin to dim/blur slightly (accelerated for demo purposes).
+- The combined molecule stays bright.
+- Explanation: `t('onboarding.fadeExplain')` — "Атоми згасають з часом, як справжні спогади. Об'єднання та взаємодія тримають їх яскравими. Те, що важливо — ти збережеш. Решта згасне."
+- Continue button.
+
+**Step 5: Done** (`StepDone`)
+- `t('onboarding.doneMessage')` — "Ти готовий/готова. Пиши, об'єднуй, будуй. Атоми → молекули → історії."
+- "Почати" ("Start") button → sets `onboardingComplete = true`, navigates to Main.
+
+## Decay visualization
+
+All nodes in the canvas render with a `DecayOverlay` component:
+
+```jsx
+function DecayOverlay({ node, children }) {
+  const { opacity, blur } = getDecay(node);
+  return (
+    <div style={{
+      opacity,
+      filter: blur > 0.5 ? `blur(${blur}px)` : 'none',
+      transition: 'opacity 0.5s, filter 0.5s'
+    }}>
+      {children}
+    </div>
+  );
+}
+```
+
+Decay recalculates on each render (it's a pure function of current time vs node timestamps). No timers needed — just re-render periodically or on user interaction.
+
+To keep the canvas feeling alive, set a `setInterval` that triggers a lightweight re-render every 60 seconds so decay visually progresses even while the user is looking at the screen.
+
+## Activity metrics
+
+### engine/stats.js
+
+```js
+export function getStats(nodes) {
+  const atoms = nodes.filter(n => n.level === 'atom');
+  const molecules = nodes.filter(n => n.level === 'molecule');
+  const stories = nodes.filter(n => n.level === 'story');
+
+  // Alive = retention > 0.5 (more visible than not)
+  const aliveAtoms = atoms.filter(n => getDecay(n).retention > 0.5).length;
+  const aliveMolecules = molecules.filter(n => getDecay(n).retention > 0.5).length;
+
+  return {
+    totalAtoms: atoms.length,
+    totalMolecules: molecules.length,
+    totalStories: stories.length,
+    aliveAtoms,
+    aliveMolecules,
+    // How much of the user's knowledge is still "alive"
+    aliveRatio: atoms.length > 0
+      ? Math.round((aliveAtoms / atoms.length) * 100) : 0
+  };
+}
+```
+
+These stats can be shown in Settings or as a compact indicator in the app bar. Not a primary feature — the canvas itself IS the visualization.
 
 ## Internationalization
 
-Unchanged from v2. `useTranslation()` hook + `LanguageProvider`.
-
-### New translation keys for v3
+Same `useTranslation()` hook as before. New keys:
 
 ```js
-// Added to uk.js
-reflect: {
-  comboPrompt: 'Що тобі це нагадує?',
-  shuffle: 'Інша комбінація',
-  poolNeeded: 'Потрібно більше фрагментів для рефлексії',
-  unlockBasic: 'Перші рефлексії доступні',
-  unlockVisual: 'Візуальні комбінації розблоковано',
-  unlockSensory: 'Сенсорні комбінації розблоковано',
-  unlockPlace: 'Комбінації з місцями розблоковано',
-  unlockRich: 'Глибокі рефлексії розблоковано',
-  unlockFull: 'Повний спектр рефлексій',
-},
-pool: {
-  title: 'Твої фрагменти',
-  texts: 'Тексти', photos: 'Фото', music: 'Музика',
-  videos: 'Відео', locations: 'Місця',
-  total: '{count} фрагментів',
-  combos: '~{count} можливих комбінацій',
-  thisWeek: '+{count} цього тижня',
-},
-onboarding: {
-  blurTitle: 'Записи згасають',
-  blurDescription: 'Записи згасають, як і спогади. Але фрагменти — фрази, фото, музика, місця — залишаються чіткими. Це не помилка. Це те, як працює пам\'ять.',
-  blurContinue: 'Зрозуміло',
+// uk.js
+export default {
+  app: { name: 'Mind Diary' },
+
+  onboarding: {
+    namePrompt: "Як тебе звати?",
+    writePrompt: "Напиши щось про свій день. Що завгодно.",
+    atomsExplain: "Твій запис розклався на атоми — окремі думки, фрази, медіа. Кожен атом живе самостійно.",
+    combinePrompt: "Обери кілька атомів і об'єднай їх.",
+    moleculeExplain: "Молекула — це група атомів, які ти зв'язав(ла). Кожне об'єднання оновлює їх, не даючи згаснути.",
+    fadeExplain: "Атоми згасають з часом, як справжні спогади. Об'єднання та взаємодія тримають їх яскравими.",
+    doneMessage: "Ти готовий/готова. Пиши, об'єднуй, будуй.",
+    start: "Почати",
+  },
+
+  canvas: {
+    emptyState: "Напиши першу думку. Вона розкладеться на атоми.",
+  },
+
+  composer: {
+    placeholder: "Напиши щось...",
+    send: "Надіслати",
+  },
+
+  combine: {
+    title: "Об'єднати",
+    notePlaceholder: "Додай нотатку...",
+    confirm: "Об'єднати",
+    cancel: "Скасувати",
+    selected: "{count} обрано",
+    resultMolecule: "Нова молекула",
+    resultStory: "Нова історія",
+  },
+
+  detail: {
+    addHere: "Додати сюди",
+    created: "Створено {date}",
+    interactions: "{count} взаємодій",
+  },
+
+  levels: {
+    atom: "Атом",
+    molecule: "Молекула",
+    story: "Історія",
+  },
+
+  settings: {
+    title: "Налаштування",
+    name: "Ім'я",
+    language: "Мова",
+    exportJSON: "Експорт даних",
+    importJSON: "Імпорт даних",
+    nodeCount: "{count} вузлів",
+    resetOnboarding: "Пройти онбординг знову",
+  },
+
+  common: {
+    save: "Зберегти",
+    cancel: "Скасувати",
+    done: "Готово",
+    back: "Назад",
+  }
+};
+```
+
+## Data export
+
+```js
+export function exportAsJSON(nodes) {
+  const data = JSON.stringify(nodes, null, 2);
+  downloadFile(data, 'mind-diary-export.json', 'application/json');
+}
+
+export function importFromJSON(jsonString, nodeStore) {
+  const nodes = JSON.parse(jsonString);
+  nodeStore.importNodes(nodes);
 }
 ```
 
-## Onboarding flow (updated)
+Single store, single export. No separate fragment/reflection stores — everything is a node.
 
-```
-LANGUAGE_SELECT → NAME_INPUT → BLUR_PHILOSOPHY → JOURNAL
-```
+## Settings page
 
-The blur philosophy screen is new. It explains that entries fade and fragments survive. Single screen, one button.
-
-## Journal screen
-
-- Pool indicator in app bar (compact bar chart or fragment count)
-- Rich inline media rendering (photos full-width, music with album art, location mini-maps)
-- Blur applied per entry age
-- Minimum viable entry: a single photo with no text
-- On save: extract fragments → write to fragments store → recalculate pool → fire unlock toast if threshold crossed
-
-## Reflect screen (redesigned)
-
-- Fragment collage: 3-5 FragmentCard components (text/photo/music/video/location)
-- Fragments are NOT labeled with source entry dates
-- Compose area: `t('reflect.comboPrompt')`
-- Shuffle button for new combo
-- Disabled until pool reaches 10 fragments
-- Saves to `reflections` store with fragmentIds + user text
-
-## Recall screen (updated)
-
-- Entries render with blur/opacity per decay schedule
-- Metadata stays sharp (dates, attachment types)
-- Read-only — no inline reflection compose (reflection only through Reflect screen)
-- Filters: All / Has reflection / No reflection
-
-## Weekly summary (updated)
-
-```js
-function computeWeeklySummary(messages, fragments, reflections) {
-  return {
-    entriesThisWeek: messages.filter(m => isThisWeek(m.date)).length,
-    streak: calcStreak(messages),
-    fragmentsTotal: fragments.length,
-    fragmentsThisWeek: fragments.filter(f => isThisWeek(new Date(f.createdAt))).length,
-    reflectionsTotal: reflections.length,
-    possibleCombos: getPoolStats(fragments).combos
-  };
-}
-```
-
-## Data export (updated)
-
-JSON exports all three stores (messages, fragments, reflections). CSV exports messages only (flat format). Export always includes full unblurred data.
+- **Name**: editable text field
+- **Language**: uk/en toggle
+- **Export**: download all nodes as JSON
+- **Import**: upload JSON to restore
+- **Node count**: total atoms / molecules / stories
+- **Reset onboarding**: re-run the guided walkthrough
 
 ## Key implementation rules
 
-1. **No user data leaves the device.** Network calls only for media URL resolution.
-2. **No bot, no AI, no recommendation algorithm.** Fragment combos are random, not algorithmic.
-3. **Multiple messages per day.** Message feed, timestamped to the minute.
-4. **Minimum viable entry is a single photo.** Text is optional. Attachments are first-class.
-5. **Ukrainian-first.** All strings via `t()`. No hardcoded text.
-6. **Blur is visual only — data is never deleted.** CSS filter+opacity. Export produces unblurred data.
-7. **Fragments are permanent.** Never blur or decay. Deleted only if source message is deleted (cascade).
-8. **Fragment source is hidden.** Reflect screen never reveals which entry a fragment came from.
-9. **Mobile-first.** 375px base, 480px max content width.
-10. **Dark mode.** Tailwind `dark:` variants.
-11. **Accessible.** Keyboard navigation, focus management.
-12. **No AI dependency.** Fragment extraction = string splitting. Combo generation = Math.random(). Deterministic logic only.
+1. **No user data leaves the device.** Network calls only for media URL resolution (oEmbed). No analytics, no telemetry.
+2. **No bot, no AI, no recommendation engine.** Decomposition is deterministic string splitting. There is no algorithm deciding what to show — the canvas shows everything, sorted by recency. The user decides what to combine.
+3. **Everything is a node.** Atoms, molecules, stories share one data model and one IndexedDB store. The `level` field is the only differentiator.
+4. **Original entry text is not preserved as a unit.** It exists only as its decomposed atoms. This is intentional — the app mirrors how memory fragments, not how notebooks archive.
+5. **Decay is visual only.** Underlying data is never deleted by decay. Export always produces full data. Nodes only disappear when the user explicitly deletes them.
+6. **Interactions refresh decay.** Every meaningful touch (combine, annotate, view detail, link) updates `lastInteractedAt` and increments `interactionCount`.
+7. **A node can be a child of multiple parents.** An atom can exist in several molecules. A molecule can exist in several stories. This is intentional — the same memory fragment can be part of different meaning-structures.
+8. **Minimum viable entry is a single photo.** Text is optional. The Composer treats attachments as first-class.
+9. **Ukrainian-first.** All strings via `t()`. No hardcoded text in components.
+10. **Mobile-first.** 375px base viewport, 480px max content width.
+11. **Dark mode.** Tailwind `dark:` variants. Respect `prefers-color-scheme`.
+12. **Accessible.** Keyboard navigation. Focus management. Selection state announced to screen readers.
+13. **60-second re-render tick.** A `setInterval` triggers canvas re-render so decay visually progresses in real-time, even without user interaction.
 
 ## MVP scope
 
 ### In scope
-- Journal feed with rich media rendering + blur decay
-- Fragment extraction on save (text excerpts, photos, music, video, locations)
-- Fragment pool with visible stats, type counts, combo count, unlock thresholds
-- Association-based reflection (random fragment combos, user writes associations)
-- Recall with blur overlay and filters
-- Weekly summary (entries, streak, fragments, reflections, combos)
-- Data export/import (JSON all stores, CSV messages)
+
+- Composer (text + photo/music/video/location/link attachments)
+- Auto-decomposition of entries into atoms (sentence splitting + per-attachment)
+- Canvas: single unified view of all atoms/molecules/stories with decay visualization
+- Selection + combine: tap to select, combine into molecule or story, optional note
+- Node detail: long-press to expand, view children, add more items
+- Linking: add existing atoms/molecules into an existing molecule/story
+- Forgetting curve decay (blur + opacity based on time and interaction count)
+- Guided onboarding (write → see atoms → combine → understand fade → start)
+- Data export/import (JSON)
 - Settings (name, language, export/import)
-- Onboarding with blur philosophy screen
 - Ukrainian + English
-- Dark mode, PWA
+- Dark mode
+- PWA manifest
 
 ### Out of scope (post-MVP)
-- Pin-to-preserve (premium)
+
+- Pin-to-preserve (premium — exempt a node from decay)
 - Push notifications / reminders
 - Custom themes (premium)
-- On This Day resurfacing
-- Reflection chains
-- Full-text search
+- Full-text search across atoms
+- On This Day resurfacing (same calendar date, previous years)
+- Activity analytics / stats dashboard
 - Tags / categories
 - Any AI/LLM features
+
+### What was removed from v2/v3
+
+| Removed | Reason |
+|---------|--------|
+| Journal tab (message feed) | Replaced by the Canvas — atoms ARE the feed |
+| Recall tab | Canvas IS the recall — everything in one view |
+| Reflect tab | Combining IS reflecting — no separate screen |
+| Fragment pool visualization | The Canvas is the pool — you see everything live |
+| Weekly summary | Replaced by the canvas itself as a living dashboard |
+| Message data model | Entries decompose into atoms — no monolithic messages stored |
+| Reflection data model | Combining creates molecules/stories — no separate reflections |
+| Fragment data model | Atoms ARE fragments — unified as nodes |
+| Unlock thresholds | Removed — the canvas is always available, combining is always possible |
+| Combo generation algorithm | Removed — user chooses what to combine, not the app |

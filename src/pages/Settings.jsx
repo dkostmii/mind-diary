@@ -1,25 +1,26 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { useTranslation } from '../i18n';
 import useUserStore from '../store/useUserStore';
-import useMessageStore from '../store/useMessageStore';
-import useFragmentStore from '../store/useFragmentStore';
-import useReflectionStore from '../store/useReflectionStore';
+import useNodeStore from '../store/useNodeStore';
 import LanguageSelector from '../components/shared/LanguageSelector';
-import PoolStats from '../components/pool/PoolStats';
-import { exportAllData, importData } from '../utils/exportData';
-import FixedHeader from '../components/shared/FixedHeader';
+import { getStats } from '../engine/stats';
+import { exportAsJSON, importData } from '../utils/exportData';
 
 export default function Settings() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const name = useUserStore((s) => s.name);
   const language = useUserStore((s) => s.language);
   const setUserName = useUserStore((s) => s.setName);
   const setLanguage = useUserStore((s) => s.setLanguage);
+  const resetOnboarding = useUserStore((s) => s.resetOnboarding);
 
-  const messages = useMessageStore((s) => s.messages);
-  const bulkImport = useMessageStore((s) => s.bulkImport);
-  const fragments = useFragmentStore((s) => s.fragments);
-  const reflections = useReflectionStore((s) => s.reflections);
+  const nodes = useNodeStore((s) => s.nodes);
+  const importNodes = useNodeStore((s) => s.importNodes);
+
+  const stats = getStats(nodes);
 
   const [editName, setEditName] = useState(name);
   const [nameSaved, setNameSaved] = useState(false);
@@ -35,20 +36,24 @@ export default function Settings() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <FixedHeader className="px-4 py-3 border-b border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">⚙️</span>
-          <h1 className="text-lg font-semibold text-stone-800 dark:text-stone-200">
-            {t('settings.title')}
-          </h1>
-        </div>
-      </FixedHeader>
+      <header className="shrink-0 px-4 py-3 border-b border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 flex items-center gap-3">
+        <button
+          onClick={() => navigate('/')}
+          className="p-1.5 rounded-lg text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
+          aria-label={t('common.back')}
+        >
+          <ArrowLeft size={20} />
+        </button>
+        <h1 className="text-lg font-semibold text-stone-800 dark:text-stone-200">
+          {t('settings.title')}
+        </h1>
+      </header>
 
       <div className="flex-1 overflow-y-auto min-h-0 p-4 space-y-6 max-w-lg mx-auto w-full">
         {/* Name */}
         <section className="bg-white dark:bg-stone-800 rounded-2xl p-4 shadow-sm space-y-3">
           <h2 className="text-sm font-semibold text-stone-700 dark:text-stone-200">
-            {t('settings.nameLabel')}
+            {t('settings.name')}
           </h2>
           <div className="flex gap-2">
             <input
@@ -56,7 +61,7 @@ export default function Settings() {
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
               className="flex-1 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 px-3 py-2 text-sm text-stone-800 dark:text-stone-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              aria-label={t('settings.nameLabel')}
+              aria-label={t('settings.name')}
             />
             <button
               onClick={handleSaveName}
@@ -74,29 +79,34 @@ export default function Settings() {
         {/* Language */}
         <section className="bg-white dark:bg-stone-800 rounded-2xl p-4 shadow-sm space-y-3">
           <h2 className="text-sm font-semibold text-stone-700 dark:text-stone-200">
-            {t('settings.languageLabel')}
+            {t('settings.language')}
           </h2>
           <LanguageSelector value={language} onChange={setLanguage} />
         </section>
 
-        {/* Pool Stats */}
-        <PoolStats />
+        {/* Node counts */}
+        <section className="bg-white dark:bg-stone-800 rounded-2xl p-4 shadow-sm space-y-2">
+          <h2 className="text-sm font-semibold text-stone-700 dark:text-stone-200">
+            {t('settings.nodeCount', { count: nodes.length })}
+          </h2>
+          <div className="flex gap-4 text-xs text-stone-500 dark:text-stone-400">
+            <span>{t('levels.atom')}: {stats.totalAtoms}</span>
+            <span>{t('levels.molecule')}: {stats.totalMolecules}</span>
+          </div>
+        </section>
 
         {/* Export / Import */}
         <section className="bg-white dark:bg-stone-800 rounded-2xl p-4 shadow-sm space-y-3">
-          <p className="text-sm text-stone-500 dark:text-stone-400">
-            {t('settings.exportCount', { count: messages.length })}
-          </p>
           <div className="flex gap-2">
             <button
-              onClick={() => exportAllData(messages, fragments, reflections)}
-              disabled={messages.length === 0}
+              onClick={() => exportAsJSON(nodes)}
+              disabled={nodes.length === 0}
               className="flex-1 px-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 text-sm font-medium text-stone-700 dark:text-stone-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors"
             >
-              {t('settings.export')}
+              {t('settings.exportJSON')}
             </button>
             <label className="flex-1 px-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 text-sm font-medium text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors text-center cursor-pointer">
-              {t('settings.import')}
+              {t('settings.importJSON')}
               <input
                 type="file"
                 accept=".json"
@@ -106,7 +116,7 @@ export default function Settings() {
                   if (!file) return;
                   try {
                     const parsed = await importData(file);
-                    const count = await bulkImport(parsed.messages);
+                    const count = await importNodes(parsed);
                     setImportStatus({ ok: true, count });
                   } catch {
                     setImportStatus({ ok: false });
@@ -120,10 +130,23 @@ export default function Settings() {
           {importStatus && (
             <p className={`text-xs ${importStatus.ok ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
               {importStatus.ok
-                ? t('settings.importSuccess', { count: importStatus.count })
-                : t('settings.importError')}
+                ? `${importStatus.count} nodes imported`
+                : 'Import failed'}
             </p>
           )}
+        </section>
+
+        {/* Reset onboarding */}
+        <section className="bg-white dark:bg-stone-800 rounded-2xl p-4 shadow-sm">
+          <button
+            onClick={() => {
+              resetOnboarding();
+              navigate('/onboarding');
+            }}
+            className="w-full px-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 text-sm font-medium text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors"
+          >
+            {t('settings.resetOnboarding')}
+          </button>
         </section>
       </div>
     </div>

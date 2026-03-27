@@ -1,13 +1,9 @@
-import Journal from '../pages/Journal';
-import Reflect from '../pages/Reflect';
-import Recall from '../pages/Recall';
+import Main from '../pages/Main';
 import Settings from '../pages/Settings';
 import Onboarding from '../pages/Onboarding';
 
 const routes = [
-  { path: '/', element: <Journal /> },
-  { path: '/reflect', element: <Reflect /> },
-  { path: '/recall', element: <Recall /> },
+  { path: '/', element: <Main /> },
   { path: '/settings', element: <Settings /> },
   { path: '/onboarding', element: <Onboarding /> },
 ];
