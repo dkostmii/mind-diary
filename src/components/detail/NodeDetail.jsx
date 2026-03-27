@@ -1,8 +1,8 @@
-import { useRef, useState, useMemo } from 'react';
+import { useRef, useState, useMemo, useEffect } from 'react';
 import { X, Plus, Ungroup, Minus, Flame } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTranslation } from '../../i18n';
-import { getDecay, computeBaseHalfLife, DISSOLVE_THRESHOLD } from '../../engine/decay';
+import { getDecay, computeBaseHalfLife } from '../../engine/decay';
 import useNodeStore from '../../store/useNodeStore';
 import AtomChip from '../canvas/AtomChip';
 import ImageThumbnails from '../shared/ImageThumbnails';
@@ -20,7 +20,14 @@ export default function NodeDetail({ nodeId, onClose, onAddHere, readOnly = fals
   const [fadingOut, setFadingOut] = useState(false);
 
   const node = nodes.find(n => n.id === nodeId);
-  if (!node && !fadingOut) return null;
+
+  const baseHalfLife = useMemo(() => computeBaseHalfLife(), []);
+
+  // Auto-close when the node is deleted (e.g. after dissolve)
+  useEffect(() => {
+    if (!node && !fadingOut) onClose();
+  }, [node, fadingOut, onClose]);
+
   if (!node) return null;
 
   const children = (node.childIds || [])
@@ -30,7 +37,6 @@ export default function NodeDetail({ nodeId, onClose, onAddHere, readOnly = fals
   const created = format(new Date(node.createdAt), 'dd.MM.yyyy HH:mm');
   const isMolecule = node.level === 'molecule';
 
-  const baseHalfLife = useMemo(() => computeBaseHalfLife(), []);
   const { retention } = getDecay(node, baseHalfLife);
   const percent = Math.round(retention * 100);
 
@@ -112,7 +118,7 @@ export default function NodeDetail({ nodeId, onClose, onAddHere, readOnly = fals
                 <div className="flex-1 min-w-0">
                   <AtomDetailContent node={child} />
                 </div>
-                {!readOnly && isMolecule && children.length > 1 && (
+                {!readOnly && isMolecule && children.length > 2 && (
                   <button
                     onClick={() => handleRemoveChild(child.id)}
                     className="shrink-0 mt-1 p-1 rounded-md text-stone-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
