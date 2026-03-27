@@ -22,7 +22,7 @@ export default function Canvas({ onNodeDetail }) {
     return nodes.filter(n => !childIdSet.has(n.id));
   }, [nodes]);
 
-  // Sort by createdAt descending
+  // Sort by createdAt descending — flex-col-reverse flips visually so newest is at bottom
   const sorted = [...topLevel].sort((a, b) => b.createdAt - a.createdAt);
 
   const handleSelect = useCallback((id) => {
@@ -34,8 +34,8 @@ export default function Canvas({ onNodeDetail }) {
   }, [onNodeDetail]);
 
   return (
-    <div className="flex-1 overflow-y-auto min-h-0 p-3">
-      <div className="max-w-lg mx-auto space-y-2">
+    <div className="flex-1 overflow-y-auto min-h-0 p-3 flex flex-col-reverse">
+      <div className="max-w-lg mx-auto space-y-2 w-full">
         {sorted.map(node => (
           <CanvasNode
             key={node.id}
@@ -45,12 +45,12 @@ export default function Canvas({ onNodeDetail }) {
             onLongPress={handleLongPress}
           />
         ))}
-        {sorted.length > 0 && (
-          <p className="text-xs text-stone-400 dark:text-stone-500 text-center pt-2 pb-4">
-            {t('canvas.hintLongPress')}
-          </p>
-        )}
       </div>
+      {sorted.length > 0 && (
+        <p className="text-xs text-stone-400 dark:text-stone-500 text-center pt-2 pb-4 max-w-lg mx-auto">
+          {t('canvas.hintLongPress')}
+        </p>
+      )}
     </div>
   );
 }
@@ -80,9 +80,13 @@ function CanvasNode({ node, baseHalfLife, onSelect, onLongPress }) {
       return null;
   }
 
+  const align = node.level === 'atom' ? 'flex justify-end' : '';
+
   return (
-    <DecayOverlay node={node} baseHalfLife={baseHalfLife} sharp={isSelected}>
-      {content}
-    </DecayOverlay>
+    <div className={align}>
+      <DecayOverlay node={node} baseHalfLife={baseHalfLife} sharp={isSelected}>
+        {content}
+      </DecayOverlay>
+    </div>
   );
 }
