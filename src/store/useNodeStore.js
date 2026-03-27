@@ -1,6 +1,14 @@
 import { create } from 'zustand';
 import { getAllNodes, saveNode, saveNodes, deleteNode, clearAllNodes } from '../utils/storage';
-import { getDecay, computeBaseHalfLife, DISSOLVE_THRESHOLD, recordComposerOperation } from '../engine/decay';
+import { getDecay, computeBaseHalfLife, DISSOLVE_THRESHOLD, recordComposerOperation as _recordComposer } from '../engine/decay';
+
+// Dissolution is disabled until the first composer operation in this session.
+// This prevents mass-deletion of old nodes on app reload.
+let dissolutionEnabled = false;
+function recordComposerOperation() {
+  dissolutionEnabled = true;
+  _recordComposer();
+}
 
 function genId() {
   return typeof crypto.randomUUID === 'function'
@@ -269,11 +277,9 @@ const useNodeStore = create((set, get) => ({
 
 }));
 
-// Event-driven dissolution: whenever the store changes, check if any
-// nodes have fully faded and dissolve them automatically.
 let dissolving = false;
 useNodeStore.subscribe(async (state) => {
-  if (dissolving) return;
+  if (!dissolutionEnabled || dissolving) return;
   const { nodes } = state;
   const baseHalfLife = computeBaseHalfLife();
 
