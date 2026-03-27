@@ -58,7 +58,7 @@ export function getLastComposerTimestamp() {
 
 /**
  * Compute decay from createdAt only (linear).
- * Decay is measured up to the last composer operation, not Date.now().
+ * Uses Date.now() so the displayed retention always reflects the real current state.
  * retention goes from 1.0 → 0.0 linearly over `effectiveLifetime` hours.
  *
  * Molecules with more children decay faster:
@@ -67,8 +67,7 @@ export function getLastComposerTimestamp() {
  * Atoms (no children) always use the base lifetime.
  */
 export function getDecay(node, lifetime = DEFAULT_LIFETIME) {
-  const anchor = getLastComposerTimestamp() ?? node.createdAt;
-  const elapsed = Math.max(0, anchor - node.createdAt);
+  const elapsed = Math.max(0, Date.now() - node.createdAt);
   const hoursSinceCreation = elapsed / (1000 * 60 * 60);
 
   const childCount = node.childIds?.length || 0;
