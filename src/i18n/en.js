@@ -2,7 +2,7 @@ export default {
   app: { name: 'Mind Diary' },
 
   onboarding: {
-    appDescription: "Write your thoughts \u2014 they decompose into atoms. Atoms fade over time, like real memories. By combining them into molecules, you form connections between ideas \u2014 exactly how your brain strengthens knowledge. The more you revisit and restructure, the deeper it sticks.",
+    appDescription: "Keep your thoughts alive.",
     namePrompt: "What's your name?",
     writePrompt: "Write something about your day. Anything.",
     atomsExplain: "Your entry decomposed into atoms \u2014 individual thoughts, phrases, media. Each atom lives on its own.",
@@ -44,8 +44,8 @@ export default {
     dissolve: "Break into atoms",
     dissolveAtom: "Dissolve",
     removeAtom: "Remove",
+    retention: "{percent}% alive",
     created: "Created {date}",
-    interactions: "{count} interactions",
   },
 
   levels: {

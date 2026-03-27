@@ -1,7 +1,8 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useMemo } from 'react';
 import { X, Plus, Ungroup, Minus, Flame } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTranslation } from '../../i18n';
+import { getDecay, computeBaseHalfLife, DISSOLVE_THRESHOLD } from '../../engine/decay';
 import useNodeStore from '../../store/useNodeStore';
 import AtomChip from '../canvas/AtomChip';
 import ImageThumbnails from '../shared/ImageThumbnails';
@@ -20,6 +21,7 @@ export default function NodeDetail({ nodeId, onClose, onAddHere, readOnly = fals
 
   const node = nodes.find(n => n.id === nodeId);
   if (!node && !fadingOut) return null;
+  if (!node) return null;
 
   const children = (node.childIds || [])
     .map(id => nodes.find(n => n.id === id))
@@ -27,6 +29,10 @@ export default function NodeDetail({ nodeId, onClose, onAddHere, readOnly = fals
 
   const created = format(new Date(node.createdAt), 'dd.MM.yyyy HH:mm');
   const isMolecule = node.level === 'molecule';
+
+  const baseHalfLife = useMemo(() => computeBaseHalfLife(), []);
+  const { retention } = getDecay(node, baseHalfLife);
+  const percent = Math.round(retention * 100);
 
   const handleDissolve = async () => {
     await dissolveMolecule(node.id);
@@ -65,13 +71,27 @@ export default function NodeDetail({ nodeId, onClose, onAddHere, readOnly = fals
       >
         {/* Header */}
         <div className="flex items-center justify-between shrink-0">
-          <div>
+          <div className="flex-1 min-w-0">
             <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
               {t(`levels.${node.level}`)}
             </span>
             <p className="text-xs text-stone-400 mt-0.5">
               {t('detail.created', { date: created })}
             </p>
+            <div className="mt-2 flex items-center gap-2">
+              <div className="flex-1 h-1.5 rounded-full bg-stone-200 dark:bg-stone-700 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${percent}%`,
+                    backgroundColor: percent > 50 ? '#22c55e' : percent > 20 ? '#eab308' : '#ef4444',
+                  }}
+                />
+              </div>
+              <span className="text-xs text-stone-400 whitespace-nowrap">
+                {t('detail.retention', { percent })}
+              </span>
+            </div>
           </div>
           <button
             onClick={onClose}
