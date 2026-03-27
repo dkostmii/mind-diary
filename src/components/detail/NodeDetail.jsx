@@ -20,6 +20,7 @@ export default function NodeDetail({ nodeId, onClose, onAddHere, readOnly = fals
 
   const node = nodes.find(n => n.id === nodeId);
   if (!node && !fadingOut) return null;
+  if (!node) return null;
 
   const children = (node.childIds || [])
     .map(id => nodes.find(n => n.id === id))
