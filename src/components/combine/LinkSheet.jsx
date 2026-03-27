@@ -48,7 +48,7 @@ export default function LinkSheet({ open, parentId, onClose }) {
         pointerDownTarget.current = null;
       }}
     >
-      <div className="bg-white dark:bg-stone-800 rounded-t-2xl shadow-xl w-full max-w-lg p-4 pb-6 space-y-4 max-h-[70vh] flex flex-col">
+      <div className="bg-white dark:bg-stone-800 rounded-t-2xl shadow-xl w-full max-w-lg p-4 pb-6 space-y-4 max-h-[70vh] flex flex-col select-none">
         <div className="flex items-center justify-between shrink-0">
           <h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">
             {t('detail.addHere')}

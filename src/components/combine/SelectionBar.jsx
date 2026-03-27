@@ -10,7 +10,7 @@ export default function SelectionBar() {
   if (selectedIds.length < 1) return null;
 
   return (
-    <div className="shrink-0 border-t border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 px-4 py-2">
+    <div className="shrink-0 border-t border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 px-4 py-2 select-none">
       <div className="max-w-lg mx-auto flex items-center justify-between">
         <span className="text-sm text-stone-600 dark:text-stone-400">
           {t('combine.selected', { count: selectedIds.length })}

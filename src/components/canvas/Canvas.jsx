@@ -34,7 +34,7 @@ export default function Canvas({ onNodeDetail }) {
   }, [onNodeDetail]);
 
   return (
-    <div className="flex-1 overflow-y-auto min-h-0 p-3 flex flex-col-reverse">
+    <div className="flex-1 overflow-y-auto min-h-0 p-3 flex flex-col-reverse select-none">
       <div className="max-w-lg mx-auto space-y-2 w-full">
         {sorted.map(node => (
           <CanvasNode

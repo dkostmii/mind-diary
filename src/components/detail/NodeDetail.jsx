@@ -68,7 +68,7 @@ export default function NodeDetail({ nodeId, onClose, onAddHere, readOnly = fals
       }}
     >
       <div
-        className="bg-stone-50 dark:bg-stone-800 rounded-2xl shadow-xl w-full max-w-lg p-4 pb-6 space-y-4 max-h-[80vh] flex flex-col"
+        className="bg-stone-50 dark:bg-stone-800 rounded-2xl shadow-xl w-full max-w-lg p-4 pb-6 space-y-4 max-h-[80vh] flex flex-col select-none"
         style={{
           opacity: fadingOut ? 0 : 1,
           filter: fadingOut ? 'blur(8px)' : 'none',
