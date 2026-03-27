@@ -28,6 +28,7 @@ export default function Composer({ disabled = false }) {
   const addNodes = useNodeStore((s) => s.addNodes);
   const combineNodes = useNodeStore((s) => s.combineNodes);
   const addChildrenToNode = useNodeStore((s) => s.addChildrenToNode);
+  const refreshCreatedAt = useNodeStore((s) => s.refreshCreatedAt);
   const selectedIds = useSelectionStore((s) => s.selectedIds);
   const clear = useSelectionStore((s) => s.clear);
 
@@ -47,6 +48,8 @@ export default function Composer({ disabled = false }) {
     }
 
     if (singleSelected) {
+      // Stamp selected node sharp first so dissolution can't remove it
+      await refreshCreatedAt(singleSelected.id);
       // Create atoms from composer input
       const newAtoms = decomposeEntry(text, attachments);
       if (newAtoms.length === 0) return;
@@ -69,7 +72,7 @@ export default function Composer({ disabled = false }) {
     if (atoms.length > 0) {
       await addNodes(atoms, { fromComposer: true });
     }
-  }, [addNodes, combineNodes, addChildrenToNode, selectedIds, clear, isCombining, singleSelected]);
+  }, [addNodes, combineNodes, addChildrenToNode, refreshCreatedAt, selectedIds, clear, isCombining, singleSelected]);
 
   const hasSelection = isCombining || isAddingToOne;
 
