@@ -1,11 +1,22 @@
 import AtomChip from './AtomChip';
 import useNodeStore from '../../store/useNodeStore';
 
+/**
+ * Renders a molecule as 3 layered atom chips in the feed.
+ * Always shows exactly 3 stacked layers regardless of actual child count.
+ * No interactivity inside — that happens in NodeDetail's gallery view.
+ */
 export default function MoleculeCard({ node, selected = false, onClick, onLongPress }) {
   const allNodes = useNodeStore((s) => s.nodes);
   const children = node.childIds
     .map(id => allNodes.find(n => n.id === id))
     .filter(Boolean);
+
+  // Prioritize text/photo/link for the top card so the stack is informative
+  const typePriority = { text: 0, photo: 1, link: 2, location: 3, music: 4, video: 5 };
+  const top = [...children].sort(
+    (a, b) => (typePriority[a.type] ?? 9) - (typePriority[b.type] ?? 9)
+  )[0];
 
   const handlePointerDown = (e) => {
     if (!onLongPress) return;
@@ -35,19 +46,29 @@ export default function MoleculeCard({ node, selected = false, onClick, onLongPr
       onKeyDown={onClick ? (e) => {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); }
       } : undefined}
-      className={`rounded-2xl bg-stone-50 dark:bg-stone-800/80 border p-3 shadow-sm transition-all ${
+      className={`relative inline-block max-w-full transition-all ${
         onClick ? 'cursor-pointer select-none' : ''
-      } ${
-        selected
-          ? 'border-indigo-500 dark:border-indigo-400 ring-2 ring-indigo-500/30'
-          : 'border-stone-200 dark:border-stone-700'
       }`}
+      style={{ marginBottom: 8 }}
     >
-      <div className="flex flex-col items-start gap-2">
-        {children.map(child => (
-          <AtomChip key={child.id} node={child} />
-        ))}
+      {/* Top card — renders first to establish size for the relative container */}
+      <div className={`relative flex ${
+        selected ? 'ring-2 ring-indigo-500 ring-offset-1 dark:ring-offset-stone-900 rounded-xl' : ''
+      }`} style={{ zIndex: 2 }}>
+        {top && (
+          <AtomChip node={top} interactive={false} revealable={false} />
+        )}
       </div>
+      {/* Layer 2 (middle) */}
+      <div
+        className="absolute inset-0 rounded-xl bg-stone-50 dark:bg-stone-800/70 border border-stone-200 dark:border-stone-700"
+        style={{ transform: 'translate(3px, 3px)', zIndex: 1 }}
+      />
+      {/* Layer 3 (back) */}
+      <div
+        className="absolute inset-0 rounded-xl bg-stone-100 dark:bg-stone-700/50 border border-stone-200 dark:border-stone-600"
+        style={{ transform: 'translate(6px, 6px)', zIndex: 0 }}
+      />
     </div>
   );
 }

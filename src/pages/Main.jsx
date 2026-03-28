@@ -4,7 +4,6 @@ import { Settings } from 'lucide-react';
 import useNodeStore from '../store/useNodeStore';
 import Canvas from '../components/canvas/Canvas';
 import Composer from '../components/composer/Composer';
-import SelectionBar from '../components/combine/SelectionBar';
 import LinkSheet from '../components/combine/LinkSheet';
 import NodeDetail from '../components/detail/NodeDetail';
 import EmptyState from '../components/shared/EmptyState';
@@ -45,9 +44,6 @@ export default function Main() {
       ) : (
         <Canvas onNodeDetail={handleNodeDetail} />
       )}
-
-      {/* Selection bar (shows when 2+ selected) */}
-      <SelectionBar />
 
       {/* Composer (doubles as combine when items selected) */}
       <Composer />

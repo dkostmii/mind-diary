@@ -41,7 +41,7 @@ export default function StepAtoms({ atoms, onContinue, skipFadeDemo = false }) {
           }}
         >
           {atoms.map(atom => (
-            <AtomChip key={atom.id} node={atom} />
+            <AtomChip key={atom.id} node={atom} interactive={false} revealable={false} />
           ))}
         </div>
 

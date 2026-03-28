@@ -1,7 +1,7 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'mind-diary';
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 
 function genId() {
   return typeof crypto.randomUUID === 'function'
@@ -37,6 +37,24 @@ function getDB() {
         nodesStore.createIndex('level', 'level', { unique: false });
         nodesStore.createIndex('createdAt', 'createdAt', { unique: false });
         nodesStore.createIndex('lastInteractedAt', 'lastInteractedAt', { unique: false });
+      }
+      // v6: add exponential decay fields to existing atoms
+      if (oldVersion >= 5 && oldVersion < 6) {
+        const store = tx.objectStore('nodes');
+        store.openCursor().then(function iterate(cursor) {
+          if (!cursor) return;
+          const node = cursor.value;
+          if (node.level === 'atom' && node.stability === undefined) {
+            cursor.update({
+              ...node,
+              stability: 12,
+              reinforcementCount: 0,
+              ticksSinceReinforcement: 0,
+              lastReinforcedAt: node.createdAt,
+            });
+          }
+          return cursor.continue().then(iterate);
+        });
       }
     },
   });
@@ -74,6 +92,10 @@ export async function migrateToNodes() {
       childIds: [],
       note: null,
       createdAt: frag.createdAt,
+      stability: 12,
+      reinforcementCount: 0,
+      ticksSinceReinforcement: 0,
+      lastReinforcedAt: frag.createdAt,
     });
   }
 

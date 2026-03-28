@@ -64,7 +64,7 @@ export default function StepFade({ atoms, moleculeId, onContinue }) {
             }}
           >
             {childAtoms.map(atom => (
-              <AtomChip key={atom.id} node={atom} />
+              <AtomChip key={atom.id} node={atom} interactive={false} revealable={false} />
             ))}
           </div>
         )}

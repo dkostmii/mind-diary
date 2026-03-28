@@ -1,14 +1,10 @@
 import { create } from 'zustand';
 import { getAllNodes, saveNode, saveNodes, deleteNode, clearAllNodes } from '../utils/storage';
-import { getDecay, computeBaseHalfLife, DISSOLVE_THRESHOLD, recordComposerOperation as _recordComposer } from '../engine/decay';
-
-// Dissolution is disabled until the first composer operation in this session.
-// This prevents mass-deletion of old nodes on app reload.
-let dissolutionEnabled = false;
-function recordComposerOperation() {
-  dissolutionEnabled = true;
-  _recordComposer();
-}
+import {
+  getDecay, getStrength, DISSOLVE_THRESHOLD, DEFAULT_STABILITY,
+  applyTicksToAtom, reinforceAtom,
+  computePassiveTicks, getLastActiveTimestamp, setLastActiveTimestamp,
+} from '../engine/decay';
 
 function genId() {
   return typeof crypto.randomUUID === 'function'
@@ -20,15 +16,102 @@ const useNodeStore = create((set, get) => ({
   nodes: [],
   loaded: false,
 
+  // ── Load + passive ticks on startup ──────────────────────────────────────
+
   loadNodes: async () => {
-    const nodes = await getAllNodes();
+    let nodes = await getAllNodes();
+
+    // Apply passive ticks accumulated while the app was closed
+    const lastActive = getLastActiveTimestamp();
+    if (lastActive) {
+      const passiveTicks = computePassiveTicks(lastActive);
+      if (passiveTicks > 0) {
+        const toSave = [];
+        nodes = nodes.map(n => {
+          if (n.level !== 'atom') return n;
+          const updated = applyTicksToAtom(n, passiveTicks);
+          if (updated !== n) toSave.push(updated);
+          return updated;
+        });
+        if (toSave.length > 0) await saveNodes(toSave);
+      }
+    }
+    setLastActiveTimestamp();
+
     set({ nodes, loaded: true });
   },
 
+  // ── Tick system ──────────────────────────────────────────────────────────
+
+  /**
+   * Tick all atoms EXCEPT those in excludeIds by 1.
+   * Called on every meaningful user action.
+   */
+  tickOtherAtoms: async (excludeIds = []) => {
+    const excludeSet = new Set(excludeIds);
+    const nodes = get().nodes;
+    const toSave = [];
+    const updated = nodes.map(n => {
+      if (n.level !== 'atom' || excludeSet.has(n.id)) return n;
+      const ticked = applyTicksToAtom(n, 1);
+      toSave.push(ticked);
+      return ticked;
+    });
+    if (toSave.length > 0) await saveNodes(toSave);
+    setLastActiveTimestamp();
+    set({ nodes: updated });
+  },
+
+  // ── Strengthening ────────────────────────────────────────────────────────
+
+  /**
+   * Reinforce an atom: increase its stability and reset ticks.
+   * Also ticks all OTHER atoms by 1 (interaction tick).
+   */
+  strengthenAtom: async (atomId) => {
+    const nodes = get().nodes;
+    const atom = nodes.find(n => n.id === atomId);
+    if (!atom || atom.level !== 'atom') return;
+
+    const reinforced = reinforceAtom(atom);
+    await saveNode(reinforced);
+
+    // Tick all other atoms
+    const toSave = [reinforced];
+    const updated = nodes.map(n => {
+      if (n.id === atomId) return reinforced;
+      if (n.level !== 'atom') return n;
+      const ticked = applyTicksToAtom(n, 1);
+      toSave.push(ticked);
+      return ticked;
+    });
+    await saveNodes(toSave);
+    setLastActiveTimestamp();
+    set({ nodes: updated });
+  },
+
+  // ── CRUD ─────────────────────────────────────────────────────────────────
+
   addNodes: async (newNodes, { fromComposer = false } = {}) => {
     await saveNodes(newNodes);
-    if (fromComposer) recordComposerOperation();
-    set({ nodes: [...get().nodes, ...newNodes] });
+    const nodes = get().nodes;
+
+    if (fromComposer) {
+      // Tick all existing atoms (new ones are excluded since they're fresh)
+      const newIds = new Set(newNodes.map(n => n.id));
+      const toSave = [];
+      const ticked = nodes.map(n => {
+        if (n.level !== 'atom' || newIds.has(n.id)) return n;
+        const updated = applyTicksToAtom(n, 1);
+        toSave.push(updated);
+        return updated;
+      });
+      if (toSave.length > 0) await saveNodes(toSave);
+      setLastActiveTimestamp();
+      set({ nodes: [...ticked, ...newNodes] });
+    } else {
+      set({ nodes: [...nodes, ...newNodes] });
+    }
   },
 
   removeNode: async (id) => {
@@ -37,7 +120,6 @@ const useNodeStore = create((set, get) => ({
 
     await deleteNode(id);
 
-    // If atom, remove from all parents' childIds
     if (node && node.level === 'atom') {
       const parents = nodes.filter(n => n.childIds.includes(id));
       for (const parent of parents) {
@@ -53,7 +135,6 @@ const useNodeStore = create((set, get) => ({
           ),
       });
     } else {
-      // Removing a molecule does NOT remove children
       set({ nodes: nodes.filter(n => n.id !== id) });
     }
   },
@@ -68,22 +149,30 @@ const useNodeStore = create((set, get) => ({
     set({ nodes: nodes.map(n => n.id === id ? updated : n) });
   },
 
-  // Stamp createdAt to now on a node and its children (used by composer actions).
+  /**
+   * Stamp createdAt to now + reset ticks on a node and its children.
+   * Used when selecting a fading node before using it in the composer.
+   */
   refreshCreatedAt: async (id) => {
     const nodes = get().nodes;
     const node = nodes.find(n => n.id === id);
     if (!node) return;
 
     const now = Date.now();
-    const stamped = { ...node, createdAt: now };
+    const refresh = (n) => ({
+      ...n,
+      createdAt: now,
+      ticksSinceReinforcement: 0,
+      lastReinforcedAt: now,
+    });
+
+    const stamped = refresh(node);
     const toSave = [stamped];
 
     if (node.childIds.length > 0) {
       for (const cid of node.childIds) {
         const child = nodes.find(n => n.id === cid);
-        if (child) {
-          toSave.push({ ...child, createdAt: now });
-        }
+        if (child) toSave.push(refresh(child));
       }
     }
 
@@ -92,15 +181,16 @@ const useNodeStore = create((set, get) => ({
     set({ nodes: nodes.map(n => stampedMap.get(n.id) || n) });
   },
 
+  // ── Combine ──────────────────────────────────────────────────────────────
+
   combineNodes: async (childIds, note = null, attachments = []) => {
     const nodes = get().nodes;
     const selected = nodes.filter(n => childIds.includes(n.id));
     if (selected.length < 2) return null;
 
     // Flatten: if any selected node is a molecule, pull its atom children
-    // and mark the old parent for removal
     const flatAtomIds = [];
-    const consumedIds = []; // molecule ids to remove after merge
+    const consumedIds = [];
     for (const node of selected) {
       if (node.level === 'molecule') {
         for (const cid of node.childIds) {
@@ -113,11 +203,14 @@ const useNodeStore = create((set, get) => ({
     }
 
     const now = Date.now();
-    const base = { level: 'atom', childIds: [], note: null, createdAt: now };
+    const base = {
+      level: 'atom', childIds: [], note: null, createdAt: now,
+      stability: DEFAULT_STABILITY, reinforcementCount: 0,
+      ticksSinceReinforcement: 0, lastReinforcedAt: now,
+    };
     const allChildIds = [...flatAtomIds];
     const extraAtoms = [];
 
-    // If note provided, create a text atom for it and include as child
     if (note && note.trim()) {
       const noteAtom = { ...base, id: genId(), type: 'text',
                          content: { excerpt: note.trim() } };
@@ -125,7 +218,6 @@ const useNodeStore = create((set, get) => ({
       allChildIds.push(noteAtom.id);
     }
 
-    // Create atoms from attachments (same types the composer supports)
     for (const att of attachments) {
       let content;
       switch (att.type) {
@@ -151,26 +243,35 @@ const useNodeStore = create((set, get) => ({
       createdAt: now,
     };
 
-    // Stamp createdAt on all existing child atoms (they were "used" in composer)
-    const stampedAtoms = [];
+    // Reinforce existing child atoms (combining = strengthening)
+    const reinforcedAtoms = [];
     for (const aid of flatAtomIds) {
       const atom = nodes.find(n => n.id === aid);
-      if (atom) stampedAtoms.push({ ...atom, createdAt: now });
+      if (atom) reinforcedAtoms.push(reinforceAtom(atom));
     }
 
-    const nodesToSave = [...stampedAtoms, newNode, ...extraAtoms];
+    // Tick all OTHER atoms (interaction tick)
+    const involvedIds = new Set([...allChildIds, newNode.id]);
+    const tickedAtoms = [];
+    for (const n of nodes) {
+      if (n.level === 'atom' && !involvedIds.has(n.id)) {
+        tickedAtoms.push(applyTicksToAtom(n, 1));
+      }
+    }
+
+    const nodesToSave = [...reinforcedAtoms, ...tickedAtoms, newNode, ...extraAtoms];
 
     for (const id of consumedIds) {
       await deleteNode(id);
     }
     await saveNodes(nodesToSave);
-    recordComposerOperation();
+    setLastActiveTimestamp();
 
     const consumedSet = new Set(consumedIds);
-    const stampedMap = new Map(stampedAtoms.map(n => [n.id, n]));
+    const saveMap = new Map(nodesToSave.map(n => [n.id, n]));
     const updatedNodes = get().nodes
       .filter(n => !consumedSet.has(n.id))
-      .map(n => stampedMap.get(n.id) || n);
+      .map(n => saveMap.get(n.id) || n);
 
     set({ nodes: [...updatedNodes, newNode, ...extraAtoms] });
     return newNode;
@@ -185,42 +286,46 @@ const useNodeStore = create((set, get) => ({
     const updatedChildIds = [...new Set([...parent.childIds, ...newChildIds])];
     const stampedParent = { ...parent, childIds: updatedChildIds, createdAt: now };
 
-    // Stamp createdAt on added children (they were "used" in composer)
+    // Reinforce added children
     const addedChildren = nodes.filter(n => newChildIds.includes(n.id));
-    const stampedChildren = addedChildren.map(c => ({ ...c, createdAt: now }));
+    const reinforcedChildren = addedChildren.map(c => reinforceAtom(c));
 
-    const nodesToSave = [stampedParent, ...stampedChildren];
+    // Tick all other atoms
+    const involvedIds = new Set([parentId, ...newChildIds]);
+    const tickedAtoms = [];
+    for (const n of nodes) {
+      if (n.level === 'atom' && !involvedIds.has(n.id)) {
+        tickedAtoms.push(applyTicksToAtom(n, 1));
+      }
+    }
+
+    const nodesToSave = [stampedParent, ...reinforcedChildren, ...tickedAtoms];
     await saveNodes(nodesToSave);
-    recordComposerOperation();
+    setLastActiveTimestamp();
 
-    set({
-      nodes: nodes.map(n => {
-        if (n.id === parentId) return stampedParent;
-        const stamped = stampedChildren.find(s => s.id === n.id);
-        return stamped || n;
-      }),
-    });
+    const saveMap = new Map(nodesToSave.map(n => [n.id, n]));
+    set({ nodes: nodes.map(n => saveMap.get(n.id) || n) });
   },
 
-  // Dissolve a molecule: delete it, stamp its child atoms sharp.
+  // ── Dissolve / detach ────────────────────────────────────────────────────
+
   dissolveMolecule: async (id) => {
     const nodes = get().nodes;
     const node = nodes.find(n => n.id === id);
     if (!node || node.level !== 'molecule') return;
 
-    const now = Date.now();
     await deleteNode(id);
 
-    // Stamp child atoms sharp so user can recombine them
+    // Reinforce child atoms so user can recombine them
     const childIds = new Set(node.childIds);
     const toSave = [];
     const updated = nodes
       .filter(n => n.id !== id)
       .map(n => {
         if (childIds.has(n.id)) {
-          const stamped = { ...n, createdAt: now };
-          toSave.push(stamped);
-          return stamped;
+          const reinforced = reinforceAtom(n);
+          toSave.push(reinforced);
+          return reinforced;
         }
         return n;
       });
@@ -229,7 +334,6 @@ const useNodeStore = create((set, get) => ({
     set({ nodes: updated });
   },
 
-  // Remove a child atom from a molecule (atom is NOT deleted, just detached).
   removeChildFromNode: async (parentId, childId) => {
     const nodes = get().nodes;
     const parent = nodes.find(n => n.id === parentId);
@@ -239,16 +343,14 @@ const useNodeStore = create((set, get) => ({
     const updatedParent = { ...parent, childIds: updatedChildIds };
     await saveNode(updatedParent);
 
-    // Stamp the detached atom sharp
-    const now = Date.now();
     const child = nodes.find(n => n.id === childId);
     if (child) {
-      const stampedChild = { ...child, createdAt: now };
-      await saveNode(stampedChild);
+      const reinforced = reinforceAtom(child);
+      await saveNode(reinforced);
       set({
         nodes: nodes.map(n => {
           if (n.id === parentId) return updatedParent;
-          if (n.id === childId) return stampedChild;
+          if (n.id === childId) return reinforced;
           return n;
         }),
       });
@@ -256,6 +358,8 @@ const useNodeStore = create((set, get) => ({
       set({ nodes: nodes.map(n => n.id === parentId ? updatedParent : n) });
     }
   },
+
+  // ── Import / export ──────────────────────────────────────────────────────
 
   importNodes: async (importedNodes) => {
     const existing = get().nodes;
@@ -277,33 +381,38 @@ const useNodeStore = create((set, get) => ({
 
 }));
 
-let dissolving = false;
-useNodeStore.subscribe(async (state) => {
-  if (!dissolutionEnabled || dissolving) return;
-  const { nodes } = state;
-  const baseHalfLife = computeBaseHalfLife();
+// ── Event-driven dissolution ─────────────────────────────────────────────────
+// Dissolution is gated: only runs after any user-triggered store change
+// (passive ticks on load already applied, so nodes won't mass-dissolve on open).
 
-  // Find all nodes below the dissolution threshold.
+let dissolving = false;
+let storeReady = false;
+
+// Enable dissolution after the first loadNodes completes
+useNodeStore.subscribe((state) => {
+  if (state.loaded) storeReady = true;
+});
+
+useNodeStore.subscribe(async (state) => {
+  if (!storeReady || dissolving) return;
+  const { nodes } = state;
+
   const allFaded = nodes.filter(
-    n => getDecay(n, baseHalfLife).retention <= DISSOLVE_THRESHOLD
+    n => getDecay(n, nodes).retention <= DISSOLVE_THRESHOLD
   );
 
-  // Collect molecules that will dissolve and their child atom ids
   const dissolvingMolecules = allFaded.filter(n => n.level === 'molecule');
   const releasedByMolecule = new Set();
   for (const mol of dissolvingMolecules) {
     for (const cid of mol.childIds) releasedByMolecule.add(cid);
   }
 
-  // Never dissolve atoms that are children of a dissolving molecule —
-  // they will be stamped sharp instead.
   const toDissolve = allFaded.filter(n => {
     if (n.level !== 'atom') return true;
     if (releasedByMolecule.has(n.id)) return false;
-    // Only dissolve orphan atoms with no live parent
     const hasLiveParent = nodes.some(
       p => p.childIds.includes(n.id) &&
-           getDecay(p, baseHalfLife).retention > DISSOLVE_THRESHOLD
+           getDecay(p, nodes).retention > DISSOLVE_THRESHOLD
     );
     return !hasLiveParent;
   });
@@ -311,24 +420,19 @@ useNodeStore.subscribe(async (state) => {
 
   dissolving = true;
   try {
-    const now = Date.now();
-
     for (const node of toDissolve) {
       await deleteNode(node.id);
     }
     const dissolvedIds = new Set(toDissolve.map(n => n.id));
 
-    // Remove dissolved nodes, refresh released atoms, clean up childIds
     const toSave = [];
     const remaining = useNodeStore.getState().nodes
       .filter(n => !dissolvedIds.has(n.id))
       .map(n => {
         let updated = n;
-        // Stamp released atoms sharp so the user can re-combine them
         if (releasedByMolecule.has(n.id)) {
-          updated = { ...updated, createdAt: now };
+          updated = reinforceAtom(updated);
         }
-        // Clean up childIds pointing to dissolved nodes
         if (updated.childIds.some(cid => dissolvedIds.has(cid))) {
           updated = { ...updated, childIds: updated.childIds.filter(cid => !dissolvedIds.has(cid)) };
         }
@@ -344,5 +448,8 @@ useNodeStore.subscribe(async (state) => {
     dissolving = false;
   }
 });
+
+// Periodically update last-active timestamp while app is open
+setInterval(() => setLastActiveTimestamp(), 60_000);
 
 export default useNodeStore;
