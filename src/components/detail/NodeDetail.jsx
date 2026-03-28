@@ -1,5 +1,5 @@
 import { useRef, useState, useMemo, useEffect } from 'react';
-import { X, Plus, Ungroup, Minus, Flame } from 'lucide-react';
+import { X, Ungroup, Minus, Flame } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTranslation } from '../../i18n';
 import { getDecay, computeBaseHalfLife } from '../../engine/decay';
@@ -136,22 +136,13 @@ export default function NodeDetail({ nodeId, onClose, onAddHere, readOnly = fals
         {/* Actions */}
         {!readOnly && <div className="shrink-0 flex flex-col gap-2">
           {isMolecule && (
-            <>
-              <button
-                onClick={() => onAddHere(node.id)}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-stone-300 dark:border-stone-600 text-sm font-medium text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors"
-              >
-                <Plus size={16} />
-                {t('detail.addHere')}
-              </button>
-              <button
-                onClick={handleDissolve}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-stone-300 dark:border-stone-600 text-sm font-medium text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-              >
-                <Ungroup size={16} />
-                {t('detail.dissolve')}
-              </button>
-            </>
+            <button
+              onClick={handleDissolve}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-stone-300 dark:border-stone-600 text-sm font-medium text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+            >
+              <Ungroup size={16} />
+              {t('detail.dissolve')}
+            </button>
           )}
           {node.level === 'atom' && (
             <button

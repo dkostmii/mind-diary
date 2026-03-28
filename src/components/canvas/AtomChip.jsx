@@ -30,7 +30,7 @@ export default function AtomChip({ node, selected = false, onClick, onLongPress 
       onKeyDown={onClick ? (e) => {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); }
       } : undefined}
-      className={`inline-block rounded-xl transition-all ${
+      className={`inline-block max-w-full overflow-hidden rounded-xl transition-all ${
         onClick ? 'cursor-pointer select-none' : ''
       } ${
         selected
@@ -67,7 +67,7 @@ function AtomContent({ node }) {
 
     case 'location':
       return (
-        <div className={`${padding} flex items-center gap-1.5 text-stone-600 dark:text-stone-400`}>
+        <div className={`${padding} flex items-center gap-1.5 overflow-hidden text-stone-600 dark:text-stone-400`}>
           <MapPin size={14} className="text-indigo-500 shrink-0" />
           <span className="text-sm truncate">{node.content.name || 'Location'}</span>
         </div>
@@ -75,7 +75,7 @@ function AtomContent({ node }) {
 
     case 'music':
       return (
-        <div className={`${padding} flex items-center gap-2 text-stone-600 dark:text-stone-400`}>
+        <div className={`${padding} flex items-center gap-2 overflow-hidden text-stone-600 dark:text-stone-400`}>
           <Music size={14} className="text-[#1DB954] shrink-0" />
           <span className="text-sm truncate">{node.content.label || node.content.title || 'Music'}</span>
         </div>
@@ -83,7 +83,7 @@ function AtomContent({ node }) {
 
     case 'video':
       return (
-        <div className={`${padding} flex items-center gap-2 text-stone-600 dark:text-stone-400`}>
+        <div className={`${padding} flex items-center gap-2 overflow-hidden text-stone-600 dark:text-stone-400`}>
           <Video size={14} className="text-red-500 shrink-0" />
           <span className="text-sm truncate">{node.content.label || node.content.title || 'Video'}</span>
         </div>
@@ -91,7 +91,7 @@ function AtomContent({ node }) {
 
     case 'link':
       return (
-        <div className={`${padding} flex items-center gap-1.5 text-stone-600 dark:text-stone-400`}>
+        <div className={`${padding} flex items-center gap-1.5 overflow-hidden text-stone-600 dark:text-stone-400`}>
           <LinkIcon size={14} className="text-indigo-500 shrink-0" />
           <span className="text-sm text-indigo-600 dark:text-indigo-400 truncate">
             {node.content.title || node.content.url}

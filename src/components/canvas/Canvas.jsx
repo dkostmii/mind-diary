@@ -22,8 +22,13 @@ export default function Canvas({ onNodeDetail }) {
     return nodes.filter(n => !childIdSet.has(n.id));
   }, [nodes]);
 
-  // Sort by createdAt descending — flex-col-reverse flips visually so newest is at bottom
-  const sorted = [...topLevel].sort((a, b) => b.createdAt - a.createdAt);
+  // Sort by createdAt ascending — flex-col-reverse flips visually so newest (bottom of array)
+  // appears at the bottom of the screen near the composer. Most faded items float to the top.
+  // For same timestamp, preserve store order so atoms from one entry stay together.
+  const sorted = [...topLevel]
+    .map((n, i) => ({ n, i }))
+    .sort((a, b) => a.n.createdAt - b.n.createdAt || a.i - b.i)
+    .map(({ n }) => n);
 
   const handleSelect = useCallback((id) => {
     useSelectionStore.getState().toggle(id);

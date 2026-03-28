@@ -131,6 +131,13 @@ export function decomposeEntry(text, attachments = []) {
           type: 'video',
           content: { url, label: 'YouTube' },
         });
+      } else {
+        atoms.push({
+          ...base,
+          id: genId(),
+          type: 'link',
+          content: { url, title: '' },
+        });
       }
     }
   }
