@@ -2,7 +2,6 @@ import { useCallback, useMemo } from 'react';
 import useNodeStore from '../../store/useNodeStore';
 import useSelectionStore from '../../store/useSelectionStore';
 import { useTranslation } from '../../i18n';
-import { computeBaseHalfLife } from '../../engine/decay';
 import DecayOverlay from './DecayOverlay';
 import AtomChip from './AtomChip';
 import MoleculeCard from './MoleculeCard';
@@ -10,8 +9,6 @@ import MoleculeCard from './MoleculeCard';
 export default function Canvas({ onNodeDetail }) {
   const { t } = useTranslation();
   const nodes = useNodeStore((s) => s.nodes);
-
-  const baseHalfLife = useMemo(() => computeBaseHalfLife(), [nodes]);
 
   // Hide nodes that are children of any parent (they render inside their parent card)
   const topLevel = useMemo(() => {
@@ -30,9 +27,18 @@ export default function Canvas({ onNodeDetail }) {
     .sort((a, b) => a.n.createdAt - b.n.createdAt || a.i - b.i)
     .map(({ n }) => n);
 
+  const strengthenAtom = useNodeStore((s) => s.strengthenAtom);
+
   const handleSelect = useCallback((id) => {
-    useSelectionStore.getState().toggle(id);
-  }, []);
+    const selection = useSelectionStore.getState();
+    const wasSelected = selection.selectedIds.includes(id);
+    selection.toggle(id);
+    // Selecting reveals content — counts as an interaction
+    if (!wasSelected) {
+      const node = useNodeStore.getState().nodes.find(n => n.id === id);
+      if (node?.level === 'atom') strengthenAtom(id);
+    }
+  }, [strengthenAtom]);
 
   const handleLongPress = useCallback((id) => {
     if (onNodeDetail) onNodeDetail(id);
@@ -45,7 +51,6 @@ export default function Canvas({ onNodeDetail }) {
           <CanvasNode
             key={node.id}
             node={node}
-            baseHalfLife={baseHalfLife}
             onSelect={handleSelect}
             onLongPress={handleLongPress}
           />
@@ -60,7 +65,7 @@ export default function Canvas({ onNodeDetail }) {
   );
 }
 
-function CanvasNode({ node, baseHalfLife, onSelect, onLongPress }) {
+function CanvasNode({ node, onSelect, onLongPress }) {
   const isSelected = useSelectionStore(s => s.selectedIds.includes(node.id));
 
   const handleClick = () => onSelect(node.id);
@@ -76,7 +81,7 @@ function CanvasNode({ node, baseHalfLife, onSelect, onLongPress }) {
   let content;
   switch (node.level) {
     case 'atom':
-      content = <AtomChip {...props} />;
+      content = <AtomChip {...props} interactive={false} revealable={false} />;
       break;
     case 'molecule':
       content = <MoleculeCard {...props} />;
@@ -89,7 +94,7 @@ function CanvasNode({ node, baseHalfLife, onSelect, onLongPress }) {
 
   return (
     <div className={align}>
-      <DecayOverlay node={node} baseHalfLife={baseHalfLife} sharp={isSelected}>
+      <DecayOverlay node={node} sharp={isSelected}>
         {content}
       </DecayOverlay>
     </div>

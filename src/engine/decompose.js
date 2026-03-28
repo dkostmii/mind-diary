@@ -97,6 +97,10 @@ export function decomposeEntry(text, attachments = []) {
     childIds: [],
     note: null,
     createdAt: now,
+    stability: 12,           // DEFAULT_STABILITY
+    reinforcementCount: 0,
+    ticksSinceReinforcement: 0,
+    lastReinforcedAt: now,
   };
 
   // 1. Text -> split into sentence/clause atoms

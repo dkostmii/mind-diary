@@ -17,20 +17,26 @@ Write an entry
     ↓
 Entry decomposes into atoms
     ↓
-Atoms fade (linear decay, driven by composer frequency)
+Atoms fade (exponential decay, driven by interaction ticks)
     ↓
-User selects atoms → combines into a molecule
+User interacts with atoms (tap-to-reveal text, view media) → strengthens them
     ↓
-Molecules fade (faster if they contain more atoms)
+User selects atoms → combines into a molecule → atoms are reinforced
     ↓
-Faded molecule dissolves → child atoms become sharp again
+Molecules display as navigable stacks (swipe through atoms)
+    ↓
+Molecule strength = average of its atoms' strengths
+    ↓
+Faded molecule dissolves → child atoms are reinforced
     ↓
 Faded orphan atoms are permanently deleted
 ```
 
-**The key mechanic**: things fade unless you actively create new content. The more you write, the faster old things fade. Combining atoms into molecules makes them sharp — but only at the moment of combination. The app doesn't tell you what to combine — you see your fading atoms and decide what belongs together. That decision IS the reflection.
+**The key mechanic**: things fade unless you actively engage with them. Every meaningful action (creating, viewing, combining) ticks all OTHER atoms down by one step, while the atom you interact with gets strengthened. The more you engage, the faster untouched things fade — but the things you care about grow more resilient.
 
-**Anti-hoarding**: larger molecules decay faster (`lifetime / (1 + log2(childCount))`). A focused 2-3 atom molecule stays bright. A dump-everything molecule of 15 atoms fades fast, encouraging the user to organize into smaller, meaningful groups.
+**Strengthening**: each interaction increases an atom's `stability` (flattens the decay curve). First reinforcement: ×1.5, second: ×1.8, third+: ×2.0. Well-reinforced atoms decay much slower.
+
+**Text atoms require tap-to-reveal**: text is slightly blurred until tapped, enforcing intentional reading. After 3 seconds of reading, the atom is strengthened. Media/photo atoms strengthen after 3 seconds of viewing.
 
 ## Tech stack
 
@@ -112,30 +118,29 @@ Everything is a **Node**. The `level` field determines its scale: `atom` or `mol
 
   // --- Content (atoms only) ---
   type: 'text' | 'photo' | 'music' | 'video' | 'location' | 'link' | null,
-  content: {
-    // text:     { excerpt: 'choose comfort over growth' }
-    // photo:    { data: '...base64 or blob ref...' }
-    // music:    { title: '...', artist: '...', url: '...' }
-    // video:    { thumbnailUrl: '...', url: '...' }
-    // location: { name: '...', lat: 49.84, lng: 24.02 }
-    // link:     { url: '...', title: '...' }
-  } | null,
+  content: { /* varies by type */ } | null,
 
   // --- Composition (molecules only) ---
   childIds: [],               // Atom IDs for molecules
 
-  // --- Decay ---
-  createdAt: 1710700000000,   // Stamped to Date.now() when used in composer
+  // --- Timestamps ---
+  createdAt: 1710700000000,
+
+  // --- Decay & Strengthening (atoms only) ---
+  stability: 12,              // Base decay constant (grows with reinforcement)
+  reinforcementCount: 0,      // How many times the atom has been strengthened
+  ticksSinceReinforcement: 0, // Interaction ticks since last reinforcement
+  lastReinforcedAt: 1710700000000,
 }
 ```
 
 ### Constraints
 
-- An **atom** has `type` + `content`, empty `childIds`.
-- A **molecule** has `childIds` pointing to atoms, `type` is null.
+- An **atom** has `type` + `content`, empty `childIds`, and decay fields.
+- A **molecule** has `childIds` pointing to atoms, `type` is null. No independent decay — strength = average of atom strengths.
 - No stories. No nesting. Molecules are flat.
 - A node can be a child of multiple parents (an atom can be in several molecules).
-- Dissolving a molecule does NOT delete children (atoms become sharp and reappear standalone).
+- Dissolving a molecule does NOT delete children (atoms are reinforced and reappear standalone).
 - Deleting an atom removes it from all parent `childIds` arrays.
 - No `lastInteractedAt`, no `interactionCount`. Only `createdAt` matters for decay.
 
@@ -151,84 +156,62 @@ Every sentence becomes its own atom. Very long sentences (>12 words) get split o
 
 ## Decay system
 
-### Linear decay, composer-frequency-driven
+### Exponential decay with interaction ticks
 
-Decay is **linear** (not exponential). Retention goes from 100% to 0% over a predictable `lifetime`.
-
-```js
-retention = max(0, 1 - elapsed / effectiveLifetime)
-```
-
-### Lifetime derivation
-
-The lifetime is derived from the user's composer operation frequency:
-
-```
-lifetime = median_gap_between_composer_operations × 6
-```
-
-- Needs ≥2 composer operations to produce a real value
-- Before 2 operations: `DEFAULT_LIFETIME = 9999` (effectively no fading)
-- Upper bound: `MAX_LIFETIME = 336` hours (14 days)
-
-### Discrete decay steps
-
-Decay does NOT advance continuously with `Date.now()`. Instead, it's measured against the **last composer operation timestamp**:
+Decay is **exponential**: `strength = e^(-t / stability)` where `t` = ticks since last reinforcement and `stability` grows with each reinforcement.
 
 ```js
-const anchor = getLastComposerTimestamp() ?? node.createdAt;
-const elapsed = max(0, anchor - node.createdAt);
+strength = Math.exp(-ticksSinceReinforcement / stability)
 ```
 
-This means decay only visually updates when the user submits something in the composer. Between operations, everything stays at its current retention level.
+### Hybrid tick system
 
-### Molecule size penalty
+**Interaction ticks (primary):** Every meaningful user action ticks ALL OTHER atoms down by one step. The atom being interacted with does NOT tick down. Meaningful actions include:
 
-Larger molecules decay faster to discourage hoarding:
+- Creating new atoms (composer send)
+- Combining atoms into a molecule
+- Adding atoms to a molecule
+- Tap-to-reveal a text atom (3s dwell)
+- Viewing a media/photo atom (3s dwell)
+- Navigating within a molecule stack
 
-```js
-const sizePenalty = childCount > 1 ? 1 + Math.log2(childCount) : 1;
-const effectiveLifetime = lifetime / sizePenalty;
-```
+**Passive time ticks (secondary):** Real-clock-based decay at `1 tick per 4 hours` of inactivity. Applied on app open by comparing current time vs last active timestamp. Ensures abandoned atoms eventually fade (~2-4 weeks of pure inactivity to fully decay).
 
-| Atoms in molecule | Lifetime multiplier |
+### Strengthening through interaction
+
+When a user engages with an atom, its `stability` increases:
+
+| Reinforcement # | Stability multiplier |
 |---|---|
-| 1-2 | 1x |
-| 4 | ~0.7x |
-| 8 | ~0.5x |
-| 16 | ~0.33x |
+| 1st | ×1.5 |
+| 2nd | ×1.8 |
+| 3rd+ | ×2.0 |
+
+Each reinforcement also resets `ticksSinceReinforcement` to 0.
+
+**Text atoms**: render slightly blurred (3px blur, 60% opacity) until tapped. Tap reveals the text; after 3 seconds of reading, the atom is strengthened. This blur is a UI mechanic separate from decay-driven fading.
+
+**Media/photo/location atoms**: strengthen after 3 seconds of viewing.
+
+### Molecule strength
+
+A molecule's displayed strength is the **equal-weighted average** of its child atoms' strengths. No independent molecule decay. No size penalty.
 
 ### Selection sharpness
 
-Selecting a node makes it visually sharp (opacity 1, no blur) via the `sharp` CSS prop on `DecayOverlay`. This is purely visual — no data mutation. On deselect, the node returns to its current decay state.
-
-### What makes a node sharp (stamps `createdAt = Date.now()`)
-
-| Action | What becomes sharp |
-|---|---|
-| Creating atoms via composer | The new atoms |
-| Combining atoms into a molecule | All child atoms + the new molecule |
-| Adding atoms to an existing molecule | The parent + added children |
-| Molecule dissolution (auto or manual) | Released child atoms |
-| Removing an atom from a molecule | The detached atom |
-
-### What does NOT make nodes sharp
-
-- Selecting / deselecting (visual only)
-- Viewing node detail (passive, read-only)
-- Scrolling past a node in the canvas
+Selecting a node makes it visually sharp (opacity 1, no blur) via the `sharp` CSS prop on `DecayOverlay`. Purely visual — no data mutation.
 
 ### Dissolution
 
-- **Molecules**: when retention drops below `DISSOLVE_THRESHOLD` (0.05), the molecule is deleted and its child atoms are stamped sharp (`createdAt = now`).
-- **Atoms**: orphan atoms (no live parent molecule) below the threshold are permanently deleted from IndexedDB.
-- Dissolution is **event-driven** via Zustand `subscribe` — triggered on every store change, no polling/intervals.
-- Child atoms of a dissolving molecule are **never** dissolved in the same pass — they are always stamped sharp first.
+- **Molecules**: when average atom strength drops below `DISSOLVE_THRESHOLD` (0.05), the molecule is deleted and its child atoms are reinforced.
+- **Atoms**: orphan atoms below the threshold are permanently deleted.
+- Dissolution is **event-driven** via Zustand `subscribe`.
+- Child atoms of a dissolving molecule are **never** dissolved in the same pass — they are always reinforced first.
 
 ### Manual actions in NodeDetail
 
-- **Dissolve molecule**: breaks it into sharp atoms immediately.
-- **Remove atom from molecule**: detaches the atom (becomes standalone and sharp). Only available when molecule has 2+ children.
+- **Dissolve molecule**: breaks it into reinforced atoms immediately.
+- **Remove atom from molecule**: detaches the atom (reinforced). Only available when molecule has 3+ children.
 - **Dissolve atom**: deletes the atom with a fade-out animation.
 - During **onboarding**, these actions are hidden (`readOnly` prop).
 
@@ -269,7 +252,7 @@ One screen. Everything lives here.
 
 ### Sorting
 
-Default sort: `createdAt` descending (most recently created/refreshed at top).
+Default sort: `createdAt` ascending with `flex-col-reverse` — newest/sharpest items at the bottom near the composer, oldest/most faded at the top. Messenger-style layout.
 
 ### Composer modes
 
@@ -283,7 +266,19 @@ The bottom composer has three modes depending on selection:
 
 ### Atoms absorbed into molecules
 
-Atoms that are children of any molecule do NOT appear standalone on the canvas. They only render inside their parent molecule card.
+Atoms that are children of any molecule do NOT appear standalone on the canvas. They only render inside their parent molecule's stack.
+
+### Molecule stack rendering
+
+Molecules render as **navigable stacks**, not open containers:
+
+- Shows only the **top atom** (first in `childIds`)
+- **Position indicator**: "1/5" shown when molecule has 2+ atoms
+- **Swipe** left/right or tap chevrons to navigate through atoms
+- Each atom follows its type's interaction rules (text = tap-to-reveal, media = view)
+- Navigating away from a text atom re-blurs it
+- Swiping through the stack counts as an interaction tick (ticks other atoms)
+- Merely swiping past without engaging does NOT strengthen that atom
 
 ## Guided onboarding
 
@@ -317,15 +312,17 @@ Animated loader with two atoms ("Mind", "Diary") that fade and reappear in a sta
 3. **Everything is a node.** Atoms and molecules share one data model and one IndexedDB store.
 4. **Only two levels: atoms and molecules.** No stories, no nesting. Molecules are flat.
 5. **Original entry text is not preserved as a unit.** It exists only as its decomposed atoms.
-6. **Decay is linear and composer-driven.** `retention = 1 - elapsed/lifetime`. Lifetime derived from median gap between composer operations × 6. Decay advances in discrete steps (each composer use), not continuously.
-7. **Dissolution is real deletion.** Faded molecules break into sharp atoms. Faded orphan atoms are permanently deleted. Export reflects current state.
-8. **Larger molecules fade faster.** `effectiveLifetime = lifetime / (1 + log2(childCount))`. Encourages focused, small molecules.
-9. **A node can be a child of multiple parents.** An atom can exist in several molecules.
-10. **Minimum viable entry is a single photo.** Text is optional.
-11. **Ukrainian-first.** All strings via `t()`. No hardcoded text in components.
-12. **Mobile-first.** 375px base viewport, 480px max content width.
-13. **Dark mode.** Tailwind `dark:` variants. Respect `prefers-color-scheme`.
-14. **Event-driven architecture.** No polling, no intervals, no 60-second ticks. Dissolution via Zustand `subscribe`. Decay is a pure function of timestamps.
+6. **Decay is exponential and tick-driven.** `strength = e^(-t/stability)`. Interaction ticks advance on every user action. Passive ticks accumulate during inactivity (1 tick per 4 hours).
+7. **Strengthening through engagement.** Tap-to-reveal text, dwell on media. Each reinforcement increases stability (×1.5, ×1.8, ×2.0) and resets ticks.
+8. **Molecule strength = average of atoms.** No size penalty. No independent molecule decay.
+9. **Molecules render as stacks.** Show one atom at a time with swipe navigation and position indicator.
+10. **Dissolution is real deletion.** Faded molecules break into reinforced atoms. Faded orphan atoms are permanently deleted.
+11. **A node can be a child of multiple parents.** An atom can exist in several molecules.
+12. **Minimum viable entry is a single photo.** Text is optional.
+13. **Ukrainian-first.** All strings via `t()`. No hardcoded text in components.
+14. **Mobile-first.** 375px base viewport, 480px max content width.
+15. **Dark mode.** Tailwind `dark:` variants. Respect `prefers-color-scheme`.
+16. **Event-driven architecture.** Dissolution via Zustand `subscribe`. Passive ticks applied on app open.
 
 ## MVP scope
 
@@ -333,11 +330,12 @@ Animated loader with two atoms ("Mind", "Diary") that fade and reappear in a sta
 
 - Composer (text + photo/location attachments, three modes: send/add/combine)
 - Auto-decomposition of entries into atoms (sentence splitting + per-attachment)
-- Canvas: single unified view of all atoms/molecules with linear decay visualization
+- Canvas: single unified view of all atoms/molecules with exponential decay visualization
 - Selection + combine: tap to select, combine into molecule
 - Node detail: long-press to expand, retention indicator, dissolve, remove atom
-- Linking: add existing atoms into an existing molecule
-- Linear decay (blur + opacity based on composer frequency)
+- Tap-to-reveal text atoms + dwell-time strengthening for all atom types
+- Molecule stack rendering with swipe navigation
+- Exponential decay with interaction ticks + passive time ticks + strengthening
 - Guided onboarding with branching (write → see atoms fade → combine → molecule dissolution demo)
 - Data export/import (JSON)
 - Settings (name, language, export/import)

@@ -1,8 +1,8 @@
-import { useRef, useState, useMemo, useEffect } from 'react';
-import { X, Ungroup, Minus, Flame } from 'lucide-react';
+import { useRef, useState, useEffect } from 'react';
+import { X, Ungroup, Minus, Flame, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTranslation } from '../../i18n';
-import { getDecay, computeBaseHalfLife } from '../../engine/decay';
+import { getDecay } from '../../engine/decay';
 import useNodeStore from '../../store/useNodeStore';
 import AtomChip from '../canvas/AtomChip';
 import ImageThumbnails from '../shared/ImageThumbnails';
@@ -15,18 +15,42 @@ export default function NodeDetail({ nodeId, onClose, onAddHere, readOnly = fals
   const removeNode = useNodeStore((s) => s.removeNode);
   const dissolveMolecule = useNodeStore((s) => s.dissolveMolecule);
   const removeChildFromNode = useNodeStore((s) => s.removeChildFromNode);
+  const tickOtherAtoms = useNodeStore((s) => s.tickOtherAtoms);
+  const strengthenAtom = useNodeStore((s) => s.strengthenAtom);
   const backdropRef = useRef(null);
   const pointerDownTarget = useRef(null);
   const [fadingOut, setFadingOut] = useState(false);
+  const [galleryIndex, setGalleryIndex] = useState(0);
+  const [childDetailId, setChildDetailId] = useState(null);
+  const initialPercentRef = useRef(null);
+  const [animated, setAnimated] = useState(false);
 
   const node = nodes.find(n => n.id === nodeId);
-
-  const baseHalfLife = useMemo(() => computeBaseHalfLife(), []);
 
   // Auto-close when the node is deleted (e.g. after dissolve)
   useEffect(() => {
     if (!node && !fadingOut) onClose();
   }, [node, fadingOut, onClose]);
+
+  // Strengthen after mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const n = useNodeStore.getState().nodes.find(x => x.id === nodeId);
+      if (!n) return;
+      const kids = (n.childIds || [])
+        .map(cid => useNodeStore.getState().nodes.find(x => x.id === cid))
+        .filter(Boolean);
+      if (n.level === 'atom') {
+        strengthenAtom(n.id);
+      } else {
+        for (const c of kids) {
+          if (c.level === 'atom') strengthenAtom(c.id);
+        }
+      }
+      setTimeout(() => setAnimated(true), 50);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [nodeId, strengthenAtom]);
 
   if (!node) return null;
 
@@ -37,8 +61,30 @@ export default function NodeDetail({ nodeId, onClose, onAddHere, readOnly = fals
   const created = format(new Date(node.createdAt), 'dd.MM.yyyy HH:mm');
   const isMolecule = node.level === 'molecule';
 
-  const { retention } = getDecay(node, baseHalfLife);
+  const { retention } = getDecay(node, nodes);
   const percent = Math.round(retention * 100);
+
+  // Capture initial percent on first render
+  if (initialPercentRef.current === null) {
+    initialPercentRef.current = percent;
+  }
+
+  // Before animation kicks in, show the frozen initial value; after, show live percent
+  const shownPercent = animated ? percent : initialPercentRef.current;
+
+  const safeIndex = Math.min(galleryIndex, Math.max(0, children.length - 1));
+  const currentChild = children[safeIndex];
+
+  const navigateGallery = (dir) => {
+    setGalleryIndex(prev => {
+      const next = prev + dir;
+      if (next < 0 || next >= children.length) return prev;
+      // Navigating = interaction tick
+      const target = children[next];
+      if (target) tickOtherAtoms([target.id]);
+      return next;
+    });
+  };
 
   const handleDissolve = async () => {
     await dissolveMolecule(node.id);
@@ -55,6 +101,9 @@ export default function NodeDetail({ nodeId, onClose, onAddHere, readOnly = fals
 
   const handleRemoveChild = async (childId) => {
     await removeChildFromNode(node.id, childId);
+    if (safeIndex >= children.length - 1 && safeIndex > 0) {
+      setGalleryIndex(safeIndex - 1);
+    }
   };
 
   return (
@@ -87,15 +136,16 @@ export default function NodeDetail({ nodeId, onClose, onAddHere, readOnly = fals
             <div className="mt-2 flex items-center gap-2">
               <div className="flex-1 h-1.5 rounded-full bg-stone-200 dark:bg-stone-700 overflow-hidden">
                 <div
-                  className="h-full rounded-full transition-all"
+                  className="h-full rounded-full"
                   style={{
-                    width: `${percent}%`,
-                    backgroundColor: percent > 50 ? '#22c55e' : percent > 20 ? '#eab308' : '#ef4444',
+                    width: `${shownPercent}%`,
+                    backgroundColor: shownPercent > 50 ? '#22c55e' : shownPercent > 20 ? '#eab308' : '#ef4444',
+                    transition: 'width 0.8s ease-out, background-color 0.8s ease-out',
                   }}
                 />
               </div>
               <span className="text-xs text-stone-400 whitespace-nowrap">
-                {t('detail.retention', { percent })}
+                {t('detail.retention', { percent: shownPercent })}
               </span>
             </div>
           </div>
@@ -109,27 +159,62 @@ export default function NodeDetail({ nodeId, onClose, onAddHere, readOnly = fals
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto min-h-0 space-y-3">
+        <div className="flex-1 overflow-y-auto min-h-0">
           {node.level === 'atom' ? (
-            <AtomDetailContent node={node} />
+            <div className="flex items-center justify-center min-h-[120px]">
+              <AtomDetailContent node={node} />
+            </div>
           ) : (
-            children.map(child => (
-              <div key={child.id} className="flex items-start gap-2">
-                <div className="flex-1 min-w-0">
-                  <AtomDetailContent node={child} />
+            /* Molecule gallery: one atom at a time, centered */
+            <div className="flex flex-col items-center gap-3 min-h-[120px] justify-center">
+              {currentChild && (
+                <div className="w-full flex items-center justify-center">
+                  <AtomChip
+                    node={currentChild}
+                    revealable={false}
+                    interactive={false}
+                    onClick={() => {
+                      strengthenAtom(currentChild.id);
+                      setChildDetailId(currentChild.id);
+                    }}
+                  />
                 </div>
-                {!readOnly && isMolecule && children.length > 2 && (
+              )}
+
+              {/* Gallery navigation */}
+              {children.length > 1 && (
+                <div className="flex items-center gap-4">
                   <button
-                    onClick={() => handleRemoveChild(child.id)}
-                    className="shrink-0 mt-1 p-1 rounded-md text-stone-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                    aria-label={t('detail.removeAtom')}
-                    title={t('detail.removeAtom')}
+                    onClick={() => navigateGallery(-1)}
+                    disabled={safeIndex === 0}
+                    className="p-1 rounded-lg text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 disabled:opacity-20 transition-colors"
                   >
-                    <Minus size={14} />
+                    <ChevronLeft size={20} />
                   </button>
-                )}
-              </div>
-            ))
+                  <span className="text-xs text-stone-400 dark:text-stone-500 tabular-nums">
+                    {safeIndex + 1} / {children.length}
+                  </span>
+                  <button
+                    onClick={() => navigateGallery(1)}
+                    disabled={safeIndex === children.length - 1}
+                    className="p-1 rounded-lg text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 disabled:opacity-20 transition-colors"
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                </div>
+              )}
+
+              {/* Remove atom button for current child */}
+              {!readOnly && isMolecule && children.length > 2 && currentChild && (
+                <button
+                  onClick={() => handleRemoveChild(currentChild.id)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-stone-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                >
+                  <Minus size={12} />
+                  {t('detail.removeAtom')}
+                </button>
+              )}
+            </div>
           )}
         </div>
 
@@ -156,6 +241,16 @@ export default function NodeDetail({ nodeId, onClose, onAddHere, readOnly = fals
           )}
         </div>}
       </div>
+
+      {/* Nested atom detail when tapping an atom in molecule gallery */}
+      {childDetailId && (
+        <NodeDetail
+          nodeId={childDetailId}
+          onClose={() => setChildDetailId(null)}
+          onAddHere={onAddHere}
+          readOnly={readOnly}
+        />
+      )}
     </div>
   );
 }
@@ -173,7 +268,7 @@ function AtomDetailContent({ node }) {
       if (node.content.url) {
         return <MediaLink url={node.content.url} />;
       }
-      return <AtomChip node={node} />;
+      return <AtomChip node={node} interactive={false} />;
 
     case 'link':
       return (
@@ -188,6 +283,6 @@ function AtomDetailContent({ node }) {
       );
 
     default:
-      return <AtomChip node={node} />;
+      return <AtomChip node={node} interactive={false} />;
   }
 }

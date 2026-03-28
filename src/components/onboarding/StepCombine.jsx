@@ -67,6 +67,8 @@ export default function StepCombine({ items, prompt, onComplete }) {
                 node={node}
                 selected={selectedIds.includes(node.id)}
                 onClick={() => toggle(node.id)}
+                interactive={false}
+                revealable={false}
               />
             );
           })}

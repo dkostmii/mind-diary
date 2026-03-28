@@ -1,80 +1,63 @@
-// Default lifetime in hours (used when fewer than 2 composer operations).
-// Effectively infinite — nothing fades until the user has submitted twice.
-const DEFAULT_LIFETIME = 9999;
+// ── Constants ────────────────────────────────────────────────────────────────
 
-// Upper bound for the adaptive lifetime.
-const MAX_LIFETIME = 336; // 14 days — for very infrequent users
-
-// How many median gaps of inactivity until a node fully fades (0%).
-const FREQUENCY_MULTIPLIER = 6;
-
-// localStorage key for composer operation timestamps.
-const COMPOSER_TS_KEY = 'mind-diary-composer-ts';
-
-/** Record a composer operation (one submit = one datapoint). */
-export function recordComposerOperation() {
-  const ts = loadComposerTimestamps();
-  ts.push(Date.now());
-  localStorage.setItem(COMPOSER_TS_KEY, JSON.stringify(ts));
-}
-
-/** Load stored composer timestamps. */
-export function loadComposerTimestamps() {
-  try {
-    return JSON.parse(localStorage.getItem(COMPOSER_TS_KEY) || '[]');
-  } catch {
-    return [];
-  }
-}
+/** Default stability for a brand-new atom (in ticks). */
+export const DEFAULT_STABILITY = 12;
 
 /**
- * Derive the lifetime from composer operation frequency.
- * Lifetime = how many hours from 100% to 0% (linear).
- * Each composer submit is one datapoint. Needs ≥2 to produce a real value;
- * otherwise returns DEFAULT_LIFETIME (effectively no fading).
+ * Passive tick interval: how many ms of real inactivity equals one passive tick.
+ * 4 hours → ~42 passive ticks per week of inactivity.
+ * At stability=12, that gives strength ≈ e^(-42/12) ≈ 0.03 — nearly dissolved.
  */
-export function computeBaseHalfLife() {
-  const timestamps = loadComposerTimestamps().sort((a, b) => a - b);
+export const PASSIVE_TICK_INTERVAL_MS = 4 * 60 * 60 * 1000;
 
-  if (timestamps.length < 2) return DEFAULT_LIFETIME;
+/** Below this strength, molecules dissolve and orphan atoms are deleted. */
+export const DISSOLVE_THRESHOLD = 0.05;
 
-  const gaps = [];
-  for (let i = 1; i < timestamps.length; i++) {
-    gaps.push(timestamps[i] - timestamps[i - 1]);
-  }
+/** Stability multipliers per reinforcement (index = min(count, 2)). */
+const STABILITY_MULTIPLIERS = [1.5, 1.8, 2.0];
 
-  gaps.sort((a, b) => a - b);
-  const medianMs = gaps[Math.floor(gaps.length / 2)];
-  const medianHours = medianMs / (1000 * 60 * 60);
+/** Strength restore fractions per reinforcement (index = min(count, 3)). */
+const RESTORE_AMOUNTS = [0.15, 0.18, 0.21, 0.25];
 
-  return Math.min(MAX_LIFETIME, medianHours * FREQUENCY_MULTIPLIER);
-}
+const LAST_ACTIVE_KEY = 'mind-diary-last-active-ts';
 
-/** Return the most recent composer operation timestamp, or null. */
-export function getLastComposerTimestamp() {
-  const ts = loadComposerTimestamps();
-  return ts.length > 0 ? Math.max(...ts) : null;
+// ── Core decay math ──────────────────────────────────────────────────────────
+
+/**
+ * Compute strength of a single atom using exponential decay.
+ * strength = e^(-t / stability)  where t = ticksSinceReinforcement.
+ */
+export function getStrength(atom) {
+  const t = atom.ticksSinceReinforcement ?? 0;
+  const s = atom.stability ?? DEFAULT_STABILITY;
+  return Math.max(0, Math.min(1, Math.exp(-t / s)));
 }
 
 /**
- * Compute decay from createdAt only (linear).
- * Uses Date.now() so the displayed retention always reflects the real current state.
- * retention goes from 1.0 → 0.0 linearly over `effectiveLifetime` hours.
+ * Compute decay visuals for any node.
+ * - Atoms: uses getStrength directly.
+ * - Molecules: weighted average of child atom strengths (equal weight).
+ *   No size penalty.
  *
- * Molecules with more children decay faster:
- *   effectiveLifetime = lifetime / (1 + log2(childCount))
- * A 2-atom molecule = 1x, 4 atoms ≈ 0.7x, 8 atoms ≈ 0.5x, 16 atoms ≈ 0.33x.
- * Atoms (no children) always use the base lifetime.
+ * @param {object} node
+ * @param {object[]} allNodes - full nodes array (needed to look up children)
  */
-export function getDecay(node, lifetime = DEFAULT_LIFETIME) {
-  const elapsed = Math.max(0, Date.now() - node.createdAt);
-  const hoursSinceCreation = elapsed / (1000 * 60 * 60);
+export function getDecay(node, allNodes = []) {
+  let retention;
 
-  const childCount = node.childIds?.length || 0;
-  const sizePenalty = childCount > 1 ? 1 + Math.log2(childCount) : 1;
-  const effectiveLifetime = lifetime / sizePenalty;
-
-  const retention = Math.max(0, 1 - hoursSinceCreation / effectiveLifetime);
+  if (node.level === 'molecule') {
+    const children = (node.childIds || [])
+      .map(id => allNodes.find(n => n.id === id))
+      .filter(Boolean);
+    if (children.length === 0) {
+      retention = 0;
+    } else {
+      const sum = children.reduce((acc, c) => acc + getStrength(c), 0);
+      retention = sum / children.length;
+    }
+  } else {
+    retention = getStrength(node);
+  }
 
   const opacity = Math.max(0.12, retention);
   const blur = Math.max(0, (1 - retention) * 8);
@@ -82,5 +65,71 @@ export function getDecay(node, lifetime = DEFAULT_LIFETIME) {
   return { opacity, blur, retention };
 }
 
-// Dissolution threshold — below this retention, molecules break apart.
-export const DISSOLVE_THRESHOLD = 0.05;
+// ── Tick helpers ──────────────────────────────────────────────────────────────
+
+/**
+ * Return a new atom with ticks incremented.
+ * Pure function — does not mutate.
+ */
+export function applyTicksToAtom(atom, ticks) {
+  if (atom.level !== 'atom' || ticks <= 0) return atom;
+  return {
+    ...atom,
+    ticksSinceReinforcement: (atom.ticksSinceReinforcement ?? 0) + ticks,
+  };
+}
+
+/**
+ * Compute how many passive ticks have elapsed since last active timestamp.
+ */
+export function computePassiveTicks(lastActiveTs) {
+  if (!lastActiveTs) return 0;
+  const elapsed = Math.max(0, Date.now() - lastActiveTs);
+  return Math.floor(elapsed / PASSIVE_TICK_INTERVAL_MS);
+}
+
+// ── Strengthening ────────────────────────────────────────────────────────────
+
+/**
+ * Reinforce an atom: increase stability, reset tick counter.
+ * Returns a new atom object (pure function).
+ */
+export function reinforceAtom(atom) {
+  const count = atom.reinforcementCount ?? 0;
+  const multiplierIdx = Math.min(count, STABILITY_MULTIPLIERS.length - 1);
+  const multiplier = STABILITY_MULTIPLIERS[multiplierIdx];
+
+  return {
+    ...atom,
+    stability: (atom.stability ?? DEFAULT_STABILITY) * multiplier,
+    reinforcementCount: count + 1,
+    ticksSinceReinforcement: 0,
+    lastReinforcedAt: Date.now(),
+  };
+}
+
+/**
+ * Get the strength restore amount for the current reinforcement count.
+ * The caller adds this to the displayed bar, capped at 1.0.
+ */
+export function getRestoreAmount(reinforcementCount) {
+  const idx = Math.min(reinforcementCount ?? 0, RESTORE_AMOUNTS.length - 1);
+  return RESTORE_AMOUNTS[idx];
+}
+
+// ── Last-active timestamp (localStorage) ─────────────────────────────────────
+
+export function getLastActiveTimestamp() {
+  try {
+    const v = localStorage.getItem(LAST_ACTIVE_KEY);
+    return v ? Number(v) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setLastActiveTimestamp(ts = Date.now()) {
+  try {
+    localStorage.setItem(LAST_ACTIVE_KEY, String(ts));
+  } catch {}
+}
