@@ -1,161 +1,55 @@
 import { openDB } from 'idb';
 
-const DB_NAME = 'mind-diary';
-const DB_VERSION = 6;
-
-function genId() {
-  return typeof crypto.randomUUID === 'function'
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
-}
+const DB_NAME = 'mind-diary-chat';
+const DB_VERSION = 1;
 
 function getDB() {
   return openDB(DB_NAME, DB_VERSION, {
-    upgrade(db, oldVersion, _newVersion, tx) {
-      if (oldVersion < 2) {
-        if (db.objectStoreNames.contains('entries')) {
-          db.deleteObjectStore('entries');
-        }
+    upgrade(db) {
+      if (!db.objectStoreNames.contains('messages')) {
         const store = db.createObjectStore('messages', { keyPath: 'id' });
-        store.createIndex('date', 'date', { unique: false });
         store.createIndex('createdAt', 'createdAt', { unique: false });
-      }
-      if (oldVersion < 3) {
-        const fragments = db.createObjectStore('fragments', { keyPath: 'id' });
-        fragments.createIndex('sourceMessageId', 'sourceMessageId', { unique: false });
-        fragments.createIndex('createdAt', 'createdAt', { unique: false });
-
-        const reflections = db.createObjectStore('reflections', { keyPath: 'id' });
-        reflections.createIndex('createdAt', 'createdAt', { unique: false });
-      }
-      if (oldVersion < 4) {
-        const fragments = tx.objectStore('fragments');
-        fragments.createIndex('sourceReflectionId', 'sourceReflectionId', { unique: false });
-      }
-      if (oldVersion < 5) {
-        const nodesStore = db.createObjectStore('nodes', { keyPath: 'id' });
-        nodesStore.createIndex('level', 'level', { unique: false });
-        nodesStore.createIndex('createdAt', 'createdAt', { unique: false });
-        nodesStore.createIndex('lastInteractedAt', 'lastInteractedAt', { unique: false });
-      }
-      // v6: add exponential decay fields to existing atoms
-      if (oldVersion >= 5 && oldVersion < 6) {
-        const store = tx.objectStore('nodes');
-        store.openCursor().then(function iterate(cursor) {
-          if (!cursor) return;
-          const node = cursor.value;
-          if (node.level === 'atom' && node.stability === undefined) {
-            cursor.update({
-              ...node,
-              stability: 12,
-              reinforcementCount: 0,
-              ticksSinceReinforcement: 0,
-              lastReinforcedAt: node.createdAt,
-            });
-          }
-          return cursor.continue().then(iterate);
-        });
       }
     },
   });
 }
 
-// Run migration from old stores (fragments/reflections) to nodes.
-// Called once on app startup after DB is opened.
-export async function migrateToNodes() {
+export async function getAllMessages() {
   const db = await getDB();
-
-  // Check if migration already happened (nodes store has data)
-  const existingCount = await db.count('nodes');
-  if (existingCount > 0) return false;
-
-  // Check if old stores have data to migrate
-  const hasFragments = db.objectStoreNames.contains('fragments');
-  const hasReflections = db.objectStoreNames.contains('reflections');
-
-  if (!hasFragments && !hasReflections) return false;
-
-  const oldFragments = hasFragments ? await db.getAll('fragments') : [];
-  const oldReflections = hasReflections ? await db.getAll('reflections') : [];
-
-  if (oldFragments.length === 0 && oldReflections.length === 0) return false;
-
-  const nodes = [];
-
-  // Convert fragments -> atoms
-  for (const frag of oldFragments) {
-    nodes.push({
-      id: frag.id,
-      level: 'atom',
-      type: frag.type,
-      content: frag.content,
-      childIds: [],
-      note: null,
-      createdAt: frag.createdAt,
-      stability: 12,
-      reinforcementCount: 0,
-      ticksSinceReinforcement: 0,
-      lastReinforcedAt: frag.createdAt,
-    });
-  }
-
-  // Convert reflections -> molecules
-  for (const ref of oldReflections) {
-    const childIds = (ref.fragmentIds || []).filter(id =>
-      oldFragments.some(f => f.id === id)
-    );
-
-    const molecule = {
-      id: ref.id,
-      level: 'molecule',
-      type: null,
-      content: null,
-      childIds,
-      note: ref.text || null,
-      createdAt: ref.createdAt,
-    };
-    nodes.push(molecule);
-  }
-
-  // Write all nodes in a single transaction
-  const tx = db.transaction('nodes', 'readwrite');
-  for (const node of nodes) {
-    tx.store.put(node);
-  }
-  await tx.done;
-
-  return true;
+  return db.getAll('messages');
 }
 
-// --- Node CRUD ---
-
-export async function getAllNodes() {
+export async function saveMessage(msg) {
   const db = await getDB();
-  return db.getAll('nodes');
+  await db.put('messages', msg);
 }
 
-export async function saveNode(node) {
+export async function saveMessages(msgs) {
   const db = await getDB();
-  await db.put('nodes', node);
-}
-
-export async function saveNodes(nodes) {
-  const db = await getDB();
-  const tx = db.transaction('nodes', 'readwrite');
-  for (const node of nodes) {
-    tx.store.put(node);
+  const tx = db.transaction('messages', 'readwrite');
+  for (const msg of msgs) {
+    tx.store.put(msg);
   }
   await tx.done;
 }
 
-export async function deleteNode(id) {
+export async function deleteMessage(id) {
   const db = await getDB();
-  await db.delete('nodes', id);
+  await db.delete('messages', id);
 }
 
-export async function clearAllNodes() {
+export async function deleteMessages(ids) {
   const db = await getDB();
-  const tx = db.transaction('nodes', 'readwrite');
+  const tx = db.transaction('messages', 'readwrite');
+  for (const id of ids) {
+    tx.store.delete(id);
+  }
+  await tx.done;
+}
+
+export async function clearAllMessages() {
+  const db = await getDB();
+  const tx = db.transaction('messages', 'readwrite');
   await tx.store.clear();
   await tx.done;
 }

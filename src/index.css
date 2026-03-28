@@ -7,3 +7,102 @@
     -webkit-tap-highlight-color: transparent;
   }
 }
+
+/* Markdown inside message bubbles */
+.markdown-ai p,
+.markdown-user p {
+  margin-bottom: 0.5em;
+}
+.markdown-ai p:last-child,
+.markdown-user p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-ai strong { font-weight: 600; }
+.markdown-user strong { font-weight: 600; }
+
+.markdown-ai em,
+.markdown-user em { font-style: italic; }
+
+.markdown-ai code {
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 0.25rem;
+  padding: 0.1em 0.3em;
+  font-size: 0.85em;
+}
+@media (prefers-color-scheme: dark) {
+  .markdown-ai code {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+.markdown-user code {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 0.25rem;
+  padding: 0.1em 0.3em;
+  font-size: 0.85em;
+}
+
+.markdown-ai pre,
+.markdown-user pre {
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  overflow-x: auto;
+  margin: 0.5em 0;
+}
+@media (prefers-color-scheme: dark) {
+  .markdown-ai pre {
+    background: rgba(0, 0, 0, 0.3);
+  }
+}
+.markdown-user pre {
+  background: rgba(255, 255, 255, 0.1);
+}
+.markdown-ai pre code,
+.markdown-user pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.8em;
+}
+
+.markdown-ai ul,
+.markdown-user ul {
+  list-style: disc;
+  padding-left: 1.25em;
+  margin: 0.4em 0;
+}
+.markdown-ai ol,
+.markdown-user ol {
+  list-style: decimal;
+  padding-left: 1.25em;
+  margin: 0.4em 0;
+}
+.markdown-ai li,
+.markdown-user li {
+  margin-bottom: 0.15em;
+}
+
+.markdown-ai h1,
+.markdown-ai h2,
+.markdown-ai h3,
+.markdown-user h1,
+.markdown-user h2,
+.markdown-user h3 {
+  font-weight: 600;
+  margin-top: 0.6em;
+  margin-bottom: 0.3em;
+}
+.markdown-ai h1, .markdown-user h1 { font-size: 1.15em; }
+.markdown-ai h2, .markdown-user h2 { font-size: 1.05em; }
+.markdown-ai h3, .markdown-user h3 { font-size: 1em; }
+
+.markdown-ai blockquote,
+.markdown-user blockquote {
+  border-left: 3px solid currentColor;
+  opacity: 0.7;
+  padding-left: 0.75em;
+  margin: 0.4em 0;
+}
+
+.markdown-ai a { text-decoration: underline; }
+.markdown-user a { text-decoration: underline; opacity: 0.9; }

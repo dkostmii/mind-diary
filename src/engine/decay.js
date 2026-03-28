@@ -1,135 +1,56 @@
 // ── Constants ────────────────────────────────────────────────────────────────
 
-/** Default stability for a brand-new atom (in ticks). */
-export const DEFAULT_STABILITY = 12;
-
 /**
- * Passive tick interval: how many ms of real inactivity equals one passive tick.
- * 4 hours → ~42 passive ticks per week of inactivity.
- * At stability=12, that gives strength ≈ e^(-42/12) ≈ 0.03 — nearly dissolved.
+ * Default stability in seconds.
+ * Tuned so an unreinforced chip reaches ~0.3 strength in about 7 minutes.
+ * 0.3 = e^(-t/360)  →  t = 360 * ln(1/0.3) ≈ 433s ≈ 7.2 min
  */
-export const PASSIVE_TICK_INTERVAL_MS = 4 * 60 * 60 * 1000;
+export const DEFAULT_STABILITY = 15;
 
-/** Below this strength, molecules dissolve and orphan atoms are deleted. */
-export const DISSOLVE_THRESHOLD = 0.05;
+/** Below this strength, chips are deleted on the next send. */
+export const FORGET_THRESHOLD = 0.3;
 
 /** Stability multipliers per reinforcement (index = min(count, 2)). */
 const STABILITY_MULTIPLIERS = [1.5, 1.8, 2.0];
 
-/** Strength restore fractions per reinforcement (index = min(count, 3)). */
-const RESTORE_AMOUNTS = [0.15, 0.18, 0.21, 0.25];
-
-const LAST_ACTIVE_KEY = 'mind-diary-last-active-ts';
-
 // ── Core decay math ──────────────────────────────────────────────────────────
 
 /**
- * Compute strength of a single atom using exponential decay.
- * strength = e^(-t / stability)  where t = ticksSinceReinforcement.
+ * Compute strength using exponential decay with real clock time.
+ * strength = e^(-t / stability)
+ * @param {number} lastInteractionTime - ms timestamp of last interaction
+ * @param {number} stability - decay time constant in seconds
+ * @returns {number} strength in [0, 1]
  */
-export function getStrength(atom) {
-  const t = atom.ticksSinceReinforcement ?? 0;
-  const s = atom.stability ?? DEFAULT_STABILITY;
-  return Math.max(0, Math.min(1, Math.exp(-t / s)));
+export function getStrength(lastInteractionTime, stability = DEFAULT_STABILITY) {
+  const elapsedMs = Math.max(0, Date.now() - lastInteractionTime);
+  const t = elapsedMs / 1000; // convert to seconds
+  return Math.max(0, Math.min(1, Math.exp(-t / stability)));
 }
 
 /**
- * Compute decay visuals for any node.
- * - Atoms: uses getStrength directly.
- * - Molecules: weighted average of child atom strengths (equal weight).
- *   No size penalty.
- *
- * @param {object} node
- * @param {object[]} allNodes - full nodes array (needed to look up children)
+ * Compute opacity from strength.
+ * opacity = max(strength, 0.08)
  */
-export function getDecay(node, allNodes = []) {
-  let retention;
-
-  if (node.level === 'molecule') {
-    const children = (node.childIds || [])
-      .map(id => allNodes.find(n => n.id === id))
-      .filter(Boolean);
-    if (children.length === 0) {
-      retention = 0;
-    } else {
-      const sum = children.reduce((acc, c) => acc + getStrength(c), 0);
-      retention = sum / children.length;
-    }
-  } else {
-    retention = getStrength(node);
-  }
-
-  const opacity = Math.max(0.12, retention);
-  const blur = Math.max(0, (1 - retention) * 8);
-
-  return { opacity, blur, retention };
-}
-
-// ── Tick helpers ──────────────────────────────────────────────────────────────
-
-/**
- * Return a new atom with ticks incremented.
- * Pure function — does not mutate.
- */
-export function applyTicksToAtom(atom, ticks) {
-  if (atom.level !== 'atom' || ticks <= 0) return atom;
-  return {
-    ...atom,
-    ticksSinceReinforcement: (atom.ticksSinceReinforcement ?? 0) + ticks,
-  };
-}
-
-/**
- * Compute how many passive ticks have elapsed since last active timestamp.
- */
-export function computePassiveTicks(lastActiveTs) {
-  if (!lastActiveTs) return 0;
-  const elapsed = Math.max(0, Date.now() - lastActiveTs);
-  return Math.floor(elapsed / PASSIVE_TICK_INTERVAL_MS);
+export function getOpacity(strength) {
+  return Math.max(0.08, strength);
 }
 
 // ── Strengthening ────────────────────────────────────────────────────────────
 
 /**
- * Reinforce an atom: increase stability, reset tick counter.
- * Returns a new atom object (pure function).
+ * Reinforce a message: reset lastInteractionTime, increase stability.
+ * Returns a new message object (pure function).
  */
-export function reinforceAtom(atom) {
-  const count = atom.reinforcementCount ?? 0;
+export function reinforceMessage(msg) {
+  const count = msg.reinforcementCount ?? 0;
   const multiplierIdx = Math.min(count, STABILITY_MULTIPLIERS.length - 1);
   const multiplier = STABILITY_MULTIPLIERS[multiplierIdx];
 
   return {
-    ...atom,
-    stability: (atom.stability ?? DEFAULT_STABILITY) * multiplier,
+    ...msg,
+    stability: (msg.stability ?? DEFAULT_STABILITY) * multiplier,
     reinforcementCount: count + 1,
-    ticksSinceReinforcement: 0,
-    lastReinforcedAt: Date.now(),
+    lastInteractionTime: Date.now(),
   };
-}
-
-/**
- * Get the strength restore amount for the current reinforcement count.
- * The caller adds this to the displayed bar, capped at 1.0.
- */
-export function getRestoreAmount(reinforcementCount) {
-  const idx = Math.min(reinforcementCount ?? 0, RESTORE_AMOUNTS.length - 1);
-  return RESTORE_AMOUNTS[idx];
-}
-
-// ── Last-active timestamp (localStorage) ─────────────────────────────────────
-
-export function getLastActiveTimestamp() {
-  try {
-    const v = localStorage.getItem(LAST_ACTIVE_KEY);
-    return v ? Number(v) : null;
-  } catch {
-    return null;
-  }
-}
-
-export function setLastActiveTimestamp(ts = Date.now()) {
-  try {
-    localStorage.setItem(LAST_ACTIVE_KEY, String(ts));
-  } catch {}
 }

@@ -1,102 +1,51 @@
-import { useCallback, useMemo } from 'react';
-import useNodeStore from '../../store/useNodeStore';
-import useSelectionStore from '../../store/useSelectionStore';
-import { useTranslation } from '../../i18n';
-import DecayOverlay from './DecayOverlay';
-import AtomChip from './AtomChip';
-import MoleculeCard from './MoleculeCard';
+import { useEffect, useRef, useCallback } from 'react';
+import { Virtuoso } from 'react-virtuoso';
+import useChatStore from '../../store/useChatStore';
+import MessageBubble from './MessageBubble';
 
-export default function Canvas({ onNodeDetail }) {
-  const { t } = useTranslation();
-  const nodes = useNodeStore((s) => s.nodes);
-
-  // Hide nodes that are children of any parent (they render inside their parent card)
-  const topLevel = useMemo(() => {
-    const childIdSet = new Set();
-    for (const n of nodes) {
-      for (const cid of n.childIds) childIdSet.add(cid);
-    }
-    return nodes.filter(n => !childIdSet.has(n.id));
-  }, [nodes]);
-
-  // Sort by createdAt ascending — flex-col-reverse flips visually so newest (bottom of array)
-  // appears at the bottom of the screen near the composer. Most faded items float to the top.
-  // For same timestamp, preserve store order so atoms from one entry stay together.
-  const sorted = [...topLevel]
-    .map((n, i) => ({ n, i }))
-    .sort((a, b) => a.n.createdAt - b.n.createdAt || a.i - b.i)
-    .map(({ n }) => n);
-
-  const strengthenAtom = useNodeStore((s) => s.strengthenAtom);
-
-  const handleSelect = useCallback((id) => {
-    const selection = useSelectionStore.getState();
-    const wasSelected = selection.selectedIds.includes(id);
-    selection.toggle(id);
-    // Selecting reveals content — counts as an interaction
-    if (!wasSelected) {
-      const node = useNodeStore.getState().nodes.find(n => n.id === id);
-      if (node?.level === 'atom') strengthenAtom(id);
-    }
-  }, [strengthenAtom]);
-
-  const handleLongPress = useCallback((id) => {
-    if (onNodeDetail) onNodeDetail(id);
-  }, [onNodeDetail]);
-
+function TypingIndicator() {
   return (
-    <div className="flex-1 overflow-y-auto min-h-0 p-3 flex flex-col-reverse select-none">
-      <div className="max-w-lg mx-auto space-y-2 w-full">
-        {sorted.map(node => (
-          <CanvasNode
-            key={node.id}
-            node={node}
-            onSelect={handleSelect}
-            onLongPress={handleLongPress}
-          />
-        ))}
+    <div className="flex justify-start px-3 pb-2">
+      <div className="rounded-2xl rounded-bl-md bg-stone-200 dark:bg-stone-700 px-4 py-3">
+        <div className="flex gap-1">
+          <span className="w-2 h-2 bg-stone-400 dark:bg-stone-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+          <span className="w-2 h-2 bg-stone-400 dark:bg-stone-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+          <span className="w-2 h-2 bg-stone-400 dark:bg-stone-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+        </div>
       </div>
-      {sorted.length > 0 && (
-        <p className="text-xs text-stone-400 dark:text-stone-500 text-center pt-2 pb-4 max-w-lg mx-auto">
-          {t('canvas.hintLongPress')}
-        </p>
-      )}
     </div>
   );
 }
 
-function CanvasNode({ node, onSelect, onLongPress }) {
-  const isSelected = useSelectionStore(s => s.selectedIds.includes(node.id));
+export default function Canvas({ onRetry }) {
+  const messages = useChatStore((s) => s.messages);
+  const loading = useChatStore((s) => s.loading);
+  const virtuosoRef = useRef(null);
 
-  const handleClick = () => onSelect(node.id);
-  const handleLongPress = () => onLongPress(node.id);
+  useEffect(() => {
+    virtuosoRef.current?.scrollToIndex({ index: 'LAST', behavior: 'smooth' });
+  }, [messages.length, loading]);
 
-  const props = {
-    node,
-    selected: isSelected,
-    onClick: handleClick,
-    onLongPress: handleLongPress,
-  };
-
-  let content;
-  switch (node.level) {
-    case 'atom':
-      content = <AtomChip {...props} interactive={false} revealable={false} />;
-      break;
-    case 'molecule':
-      content = <MoleculeCard {...props} />;
-      break;
-    default:
-      return null;
-  }
-
-  const align = node.level === 'atom' ? 'flex justify-end' : '';
+  const renderItem = useCallback((index) => {
+    const msg = messages[index];
+    return (
+      <div className="px-3 py-1">
+        <MessageBubble message={msg} onRetry={onRetry} />
+      </div>
+    );
+  }, [messages, onRetry]);
 
   return (
-    <div className={align}>
-      <DecayOverlay node={node} sharp={isSelected}>
-        {content}
-      </DecayOverlay>
-    </div>
+    <Virtuoso
+      ref={virtuosoRef}
+      className="flex-1 min-h-0"
+      totalCount={messages.length}
+      itemContent={renderItem}
+      followOutput="smooth"
+      initialTopMostItemIndex={messages.length - 1}
+      components={{
+        Footer: loading ? TypingIndicator : undefined,
+      }}
+    />
   );
 }

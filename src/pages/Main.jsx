@@ -1,68 +1,72 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Settings } from 'lucide-react';
-import useNodeStore from '../store/useNodeStore';
+import { useState, useCallback } from 'react';
+import { useTranslation } from '../i18n';
+import useChatStore from '../store/useChatStore';
 import Canvas from '../components/canvas/Canvas';
 import Composer from '../components/composer/Composer';
-import LinkSheet from '../components/combine/LinkSheet';
-import NodeDetail from '../components/detail/NodeDetail';
-import EmptyState from '../components/shared/EmptyState';
+import Toast from '../components/shared/Toast';
+import { API_KEY, sendToGemini } from '../engine/gemini';
 
 export default function Main() {
-  const nodes = useNodeStore((s) => s.nodes);
-  const [detailNodeId, setDetailNodeId] = useState(null);
-  const [linkParentId, setLinkParentId] = useState(null);
+  const { t } = useTranslation();
+  const messages = useChatStore((s) => s.messages);
+  const [toast, setToast] = useState(null);
 
-  const handleNodeDetail = (id) => {
-    setDetailNodeId(id);
-  };
+  const handleToast = useCallback((message) => {
+    setToast(message);
+  }, []);
 
-  const handleAddHere = (parentId) => {
-    setDetailNodeId(null);
-    setLinkParentId(parentId);
-  };
+  const handleRetry = useCallback(async (messageId) => {
+    if (!API_KEY) return;
+    const { pruneMessages, addMessage, startLoading, stopLoading } = useChatStore.getState();
+    const messages = useChatStore.getState().messages;
+
+    const original = messages.find(m => m.id === messageId);
+    if (!original) return;
+
+    await addMessage('user', original.text);
+
+    const { remaining, prunedCount } = await pruneMessages();
+    if (prunedCount > 0) {
+      handleToast(t('toast.forgotten', { count: prunedCount }));
+    }
+
+    const context = remaining.map(m => ({ role: m.role, text: m.text }));
+
+    startLoading();
+    try {
+      const response = await sendToGemini(API_KEY, context);
+      await stopLoading();
+      await addMessage('ai', response);
+    } catch (err) {
+      console.error('Gemini API error:', err);
+      await stopLoading();
+      await addMessage('ai', t('error.apiFailed'));
+    }
+  }, [t, handleToast]);
 
   return (
     <div className="flex flex-col h-full">
-      {/* App bar */}
-      <header className="shrink-0 px-4 py-3 border-b border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-stone-800 dark:text-stone-200">
-          Mind Diary
+      <header className="shrink-0 px-4 py-3 border-b border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800">
+        <h1 className="text-lg font-semibold text-stone-800 dark:text-stone-200 text-center">
+          {t('app.name')}
         </h1>
-        <Link
-          to="/settings"
-          className="p-2 rounded-lg text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
-          aria-label="Settings"
-        >
-          <Settings size={20} />
-        </Link>
       </header>
 
-      {/* Canvas or empty state */}
-      {nodes.length === 0 ? (
-        <EmptyState />
+      {messages.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center p-4">
+          <p className="text-stone-400 dark:text-stone-500 text-sm text-center">
+            {t('canvas.emptyState')}
+          </p>
+        </div>
       ) : (
-        <Canvas onNodeDetail={handleNodeDetail} />
+        <Canvas onRetry={handleRetry} />
       )}
 
-      {/* Composer (doubles as combine when items selected) */}
-      <Composer />
+      <Composer onToast={handleToast} />
 
-      {/* Node detail modal */}
-      {detailNodeId && (
-        <NodeDetail
-          nodeId={detailNodeId}
-          onClose={() => setDetailNodeId(null)}
-          onAddHere={handleAddHere}
-        />
+      {toast && (
+        <Toast message={toast} onDone={() => setToast(null)} />
       )}
-
-      {/* Link sheet */}
-      <LinkSheet
-        open={!!linkParentId}
-        parentId={linkParentId}
-        onClose={() => setLinkParentId(null)}
-      />
     </div>
   );
 }
